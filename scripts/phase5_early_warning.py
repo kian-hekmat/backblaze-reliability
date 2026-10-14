@@ -165,6 +165,14 @@ for h in (30, 7):
         "undetected_lightgbm_with_no_critical_smart_ever": int((und["any_signal"] == 0).sum()),
         "undetected_by_manufacturer": und["manufacturer"].value_counts().to_dict()}, indent=2))
 
+    if h == 30:  # drive-day scores for the test period, loaded into Databricks for alert queries
+        (ROOT / "data/results").mkdir(parents=True, exist_ok=True)
+        sc = te[["serial_number", "date", "manufacturer", "days_to_failure", "fail_30d"]].copy()
+        sc["score_lightgbm"] = scores["lightgbm"].astype("float32")
+        sc["rule_alert"] = scores["simple_rule"].astype("int8")
+        sc["lightgbm_alert_at_rule_budget"] = (scores["lightgbm"] >= threshold_for_budget(scores["lightgbm"], rule_rate)).astype("int8")
+        sc.to_parquet(ROOT / "data/results/ew_test_scores_30d.parquet", index=False)
+
     imp = pd.DataFrame({"feature": FEATURES, "gain": gbm.booster_.feature_importance("gain")})
     imp["gain_share"] = imp["gain"] / imp["gain"].sum()
     imp.sort_values("gain", ascending=False).to_csv(OUT / f"feature_importance_{h}d.csv", index=False)
