@@ -16,11 +16,11 @@ done_stage() {  # $1 stage, $2 quarter -> exit 0 if complete
     "SELECT 1 FROM backblaze.ops.quarter_status WHERE stage='$1' AND quarter='$2' AND status='complete'" | grep -q 1
 }
 run() {  # $1 notebook, $2 params json
-  echo "$(date '+%F %T') START $1 $2"
+  echo "$(date '+%F %T') START $1 ${2:-}"
   out=$(bash "$ROOT/databricks/run_notebook.sh" "$1" "${2:-}" 2>&1 | grep -v aitools)
   echo "$out" | sed 's/^/    /'
-  if ! echo "$out" | grep -q "^SUCCESS"; then echo "$(date '+%F %T') FAILED $1 $2 -- stopping"; exit 1; fi
-  echo "$(date '+%F %T') DONE  $1 $2"
+  if ! echo "$out" | grep -q "^SUCCESS"; then echo "$(date '+%F %T') FAILED $1 ${2:-} -- stopping"; exit 1; fi
+  echo "$(date '+%F %T') DONE  $1 ${2:-}"
 }
 
 for q in "${QUARTERS[@]}"; do
