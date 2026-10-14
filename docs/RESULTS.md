@@ -198,7 +198,7 @@ Drive level, 30-day model ([`metrics_30d.csv`](../results/phase5/metrics_30d.csv
 
 1. **Replace or watch the high-risk models first, and budget above their trailing AFR if they are wearing out.**
    - Seagate ST12000NM0007 (7.2% [5.8, 8.9]), ST14000NM0138 (6.0%) and ST10000NM0086 (5.5%; Weibull k = 2.02,
-     wear-out) fail at 5–7× the fleet's best models.
+     wear-out) fail at about 8–13× the rate of the most reliable high-volume models (WUH721816ALE6L4, ST16000NM001G, WUH722222ALE6L4: 0.57–0.69%).
    - For wear-out models (Weibull k > 1), next year's failures came in above the trailing rate. Forecast error
      tracked hazard shape (ρ = 0.63), e.g. WUH721816ALE6L0: 83 actual vs 18 predicted. Size spares for those models
      above their historical AFR (§3.3, §3.4).
