@@ -10,6 +10,8 @@ from reliability.age import WRAP_MODULUS_HOURS, corrected_poh, corrected_poh_sql
     ("ST8000NM0055", 0, WRAP_MODULUS_HOURS),               # exactly at the wrap
     ("ST8000DM002", 29_999, 29_999 + WRAP_MODULUS_HOURS),
     ("ST8000DM002", 30_000, 30_000),
+    ("ST6000DX000", 34, 34 + WRAP_MODULUS_HOURS),           # found in 2023-2024 quarters
+    ("ST4000DM000", 12, 12 + WRAP_MODULUS_HOURS),
     ("ST16000NM001G", 3_379, 3_379),                       # non-wrapping model untouched
     ("ST8000NM0055", None, None),
     ("ST8000NM0055", -5, None),

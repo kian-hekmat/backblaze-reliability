@@ -216,3 +216,13 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   semantics are not perfectly uniform across the window.
 - Capacity inconsistencies: one ST4000DM000 drive reported 137,438,952,960 bytes on 2 of its days in Q3 2024
   (a bad reading); the per-drive most-frequent rule assigns it 4 TB. Two rows in Q3 2024 used the model fallback.
+
+## 2026-10-14 — SMART 9 wraparound: two more models found by the pipeline guard
+
+- The `drive_lifetimes` guard failed the first full-scope build, as designed: ST6000DX000 (850 drives) and
+  ST4000DM000 (4 drives) wrap at the same point, 78,187 → ~0 h, as ST8000NM0055/ST8000DM002. The wrap is a
+  Seagate counter behavior on these older models, not model-specific.
+- Both models are long-discontinued and present only in 2023–2024 quarters. Corrected mean ages, sampled on
+  2023-07-01, 2024-01-01 and 2024-07-01: ST4000DM000 7.85 years (17,899 drives); ST6000DX000 8.44 years
+  (883 drives). Both were added to `WRAP_MODELS`. Backblaze's published tables for those quarters were not
+  transcribed, so these two models' ages are checked for plausibility only, not against published averages.
