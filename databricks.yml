@@ -1,0 +1,55 @@
+# Databricks Asset Bundle: deploys the notebooks and the quarterly pipeline job.
+#   databricks bundle deploy -p <profile>
+#   databricks bundle run quarterly_pipeline -p <profile>          # next unprocessed quarter
+#   databricks bundle run quarterly_pipeline -p <profile> --params quarter=Q2_2026
+# Tasks run strictly in sequence (one at a time), well under Free Edition's 5-concurrent-task limit.
+# Every notebook is idempotent and resumes from ops.quarter_status, so a quota stop mid-run is safe to re-run.
+bundle:
+  name: backblaze-reliability
+
+include: []
+
+sync:
+  include:
+    - databricks/*.py
+    - src/reliability/*.py
+
+variables:
+  catalog:
+    default: backblaze
+
+resources:
+  jobs:
+    quarterly_pipeline:
+      name: backblaze-quarterly-pipeline
+      max_concurrent_runs: 1
+      parameters:
+        - name: quarter
+          default: ""
+        - name: catalog
+          default: ${var.catalog}
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ./databricks/10_ingest_bronze.py
+        - task_key: silver
+          depends_on: [{task_key: bronze}]
+          notebook_task:
+            notebook_path: ./databricks/20_bronze_to_silver.py
+        - task_key: drive_lifetimes
+          depends_on: [{task_key: silver}]
+          notebook_task:
+            notebook_path: ./databricks/30_gold_drive_lifetimes.py
+        - task_key: model_stats
+          depends_on: [{task_key: drive_lifetimes}]
+          notebook_task:
+            notebook_path: ./databricks/31_gold_model_stats.py
+        - task_key: features
+          depends_on: [{task_key: model_stats}]
+          notebook_task:
+            notebook_path: ./databricks/32_gold_features.py
+
+targets:
+  dev:
+    default: true
+    mode: development
