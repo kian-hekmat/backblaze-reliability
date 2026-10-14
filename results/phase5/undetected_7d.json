@@ -1,0 +1,13 @@
+{
+  "failed_test_drives": 1459,
+  "undetected_by_lightgbm": 159,
+  "undetected_by_rule": 348,
+  "undetected_by_both": 158,
+  "undetected_lightgbm_with_no_critical_smart_ever": 158,
+  "undetected_by_manufacturer": {
+    "Toshiba": 78,
+    "Seagate": 36,
+    "WDC": 30,
+    "HGST": 15
+  }
+}
