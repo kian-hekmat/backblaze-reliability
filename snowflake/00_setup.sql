@@ -1,0 +1,88 @@
+-- 00_setup.sql
+-- Creates the Snowflake environment for the drive reliability serving layer.
+-- Safe to re-run: every statement is CREATE ... IF NOT EXISTS, ALTER, or GRANT.
+-- Run with:  snow sql -f snowflake/00_setup.sql
+-- Requires a role with ACCOUNTADMIN privileges (resource monitors + role creation).
+
+USE ROLE ACCOUNTADMIN;
+
+-- ---------------------------------------------------------------------------
+-- Cost guardrail: resource monitor (threshold approved by Kian: 20 credits)
+-- ---------------------------------------------------------------------------
+CREATE RESOURCE MONITOR IF NOT EXISTS BACKBLAZE_MONITOR
+  WITH CREDIT_QUOTA = 20
+  FREQUENCY = NEVER
+  START_TIMESTAMP = IMMEDIATELY;
+
+ALTER RESOURCE MONITOR BACKBLAZE_MONITOR SET
+  CREDIT_QUOTA = 20
+  TRIGGERS ON 50 PERCENT DO NOTIFY
+           ON 75 PERCENT DO NOTIFY
+           ON 90 PERCENT DO NOTIFY
+           ON 100 PERCENT DO SUSPEND
+           ON 110 PERCENT DO SUSPEND_IMMEDIATE;
+
+-- ---------------------------------------------------------------------------
+-- Warehouses: XS, 60s auto-suspend
+-- ---------------------------------------------------------------------------
+CREATE WAREHOUSE IF NOT EXISTS LOAD_WH
+  WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Loads gold Parquet exports into BACKBLAZE.GOLD';
+CREATE WAREHOUSE IF NOT EXISTS BI_WH
+  WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Analysis queries and Tableau extracts';
+
+-- Enforce settings even if the warehouses already existed.
+ALTER WAREHOUSE LOAD_WH SET WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 AUTO_RESUME = TRUE
+  RESOURCE_MONITOR = BACKBLAZE_MONITOR;
+ALTER WAREHOUSE BI_WH SET WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 AUTO_RESUME = TRUE
+  RESOURCE_MONITOR = BACKBLAZE_MONITOR;
+
+-- ---------------------------------------------------------------------------
+-- Database and schemas
+-- ---------------------------------------------------------------------------
+CREATE DATABASE IF NOT EXISTS BACKBLAZE
+  COMMENT = 'Backblaze drive stats: gold tables and analytics views';
+CREATE SCHEMA IF NOT EXISTS BACKBLAZE.GOLD
+  COMMENT = 'Gold tables loaded from Databricks Parquet exports, plus results tables';
+CREATE SCHEMA IF NOT EXISTS BACKBLAZE.ANALYTICS
+  COMMENT = 'Views for analysis and Tableau extracts';
+
+-- ---------------------------------------------------------------------------
+-- Roles
+-- ---------------------------------------------------------------------------
+CREATE ROLE IF NOT EXISTS LOADER
+  COMMENT = 'Writes to BACKBLAZE.GOLD and builds BACKBLAZE.ANALYTICS views';
+CREATE ROLE IF NOT EXISTS ANALYST_READER
+  COMMENT = 'Read-only access to BACKBLAZE.GOLD and BACKBLAZE.ANALYTICS';
+
+GRANT ROLE LOADER TO ROLE SYSADMIN;
+GRANT ROLE ANALYST_READER TO ROLE SYSADMIN;
+
+SET me = '"' || CURRENT_USER() || '"';  -- quoted: user names can be case-sensitive
+GRANT ROLE LOADER TO USER IDENTIFIER($me);
+GRANT ROLE ANALYST_READER TO USER IDENTIFIER($me);
+
+-- LOADER: write GOLD, create views in ANALYTICS, use LOAD_WH (and BI_WH for validation)
+GRANT USAGE ON WAREHOUSE LOAD_WH TO ROLE LOADER;
+GRANT USAGE ON WAREHOUSE BI_WH TO ROLE LOADER;
+GRANT USAGE ON DATABASE BACKBLAZE TO ROLE LOADER;
+GRANT USAGE ON SCHEMA BACKBLAZE.GOLD TO ROLE LOADER;
+GRANT USAGE ON SCHEMA BACKBLAZE.ANALYTICS TO ROLE LOADER;
+GRANT CREATE TABLE, CREATE STAGE, CREATE FILE FORMAT, CREATE VIEW
+  ON SCHEMA BACKBLAZE.GOLD TO ROLE LOADER;
+GRANT CREATE VIEW ON SCHEMA BACKBLAZE.ANALYTICS TO ROLE LOADER;
+
+-- ANALYST_READER: read-only on GOLD and ANALYTICS, use BI_WH
+GRANT USAGE ON WAREHOUSE BI_WH TO ROLE ANALYST_READER;
+GRANT USAGE ON DATABASE BACKBLAZE TO ROLE ANALYST_READER;
+GRANT USAGE ON SCHEMA BACKBLAZE.GOLD TO ROLE ANALYST_READER;
+GRANT USAGE ON SCHEMA BACKBLAZE.ANALYTICS TO ROLE ANALYST_READER;
+GRANT SELECT ON ALL TABLES IN SCHEMA BACKBLAZE.GOLD TO ROLE ANALYST_READER;
+GRANT SELECT ON ALL VIEWS IN SCHEMA BACKBLAZE.GOLD TO ROLE ANALYST_READER;
+GRANT SELECT ON ALL VIEWS IN SCHEMA BACKBLAZE.ANALYTICS TO ROLE ANALYST_READER;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA BACKBLAZE.GOLD TO ROLE ANALYST_READER;
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA BACKBLAZE.GOLD TO ROLE ANALYST_READER;
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA BACKBLAZE.ANALYTICS TO ROLE ANALYST_READER;

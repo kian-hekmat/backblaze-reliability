@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Raw / intermediate data (never committed)
+data/
+
+# Secrets and connection configs
+.env
+*.p8
+*.pem
+config.toml
+connections.toml
+.databrickscfg
+snowflake/*.local.sql
+
+# OS
+.DS_Store
