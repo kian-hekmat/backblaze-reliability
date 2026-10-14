@@ -216,3 +216,92 @@ Data provided by Backblaze; cited as the source per its usage terms.
 | `smart_254_raw` | BIGINT | 0.9995 | SMART 254 Free Fall Protection: raw counter/value (encoding is vendor-specific) |
 | `smart_255_normalized` | INT | 1.0000 | SMART 255 (vendor-specific): vendor-normalized health value (typically 1-253, higher is healthier) |
 | `smart_255_raw` | BIGINT | 1.0000 | SMART 255 (vendor-specific): raw counter/value (encoding is vendor-specific) |
+
+## Bronze — `backblaze.bronze.drive_stats_raw` (Databricks Delta, partitioned by `quarter`)
+
+Every raw CSV column exactly as published, as STRING (header matched by name; columns absent in a
+quarter's schema are null), plus:
+
+| Column | Type | Meaning |
+|---|---|---|
+| `source_file` | STRING | Daily CSV file name the row came from |
+| `ingested_at` | TIMESTAMP | Load time |
+| `quarter` | STRING | e.g. `Q2_2026`; partition key, and the unit replaced on re-run |
+
+## Silver — `backblaze.silver.drive_stats` (Delta, partitioned by `date`, unique on (`date`, `serial_number`))
+
+| Column | Type | Meaning |
+|---|---|---|
+| `date` | DATE | Snapshot day |
+| `serial_number` | STRING | Drive identifier (trimmed) |
+| `model` | STRING | Normalized model (`reliability.normalize`), e.g. bare `WUH…` → `WDC WUH…` |
+| `model_short` | STRING | Model without manufacturer prefix; joins to Backblaze's published tables |
+| `manufacturer` | STRING | Seagate, Toshiba, HGST, WDC, Other |
+| `model_raw` | STRING | Model string as published |
+| `capacity_bytes` | BIGINT | Most frequent positive capacity for the drive within the quarter |
+| `is_data_drive` | BOOLEAN | `capacity_bytes >= 4e12`. False = boot drive or SSD, excluded from analysis |
+| `failure` | INT | 1 on the drive's failure day (its last row), else 0 |
+| `datacenter`, `cluster_id`, `vault_id`, `pod_id`, `pod_slot_num` | STRING | Location fields as published |
+| `smart_{n}_normalized` / `smart_{n}_raw` | INT / BIGINT | SMART n ∈ {1, 3, 4, 5, 7, 9, 10, 12, 187, 188, 192, 193, 194, 196, 197, 198, 199, 240, 241, 242}; null = not reported |
+| `quarter`, `source_file` | STRING | Lineage |
+
+## Gold
+
+### `backblaze.gold.drive_lifetimes` — one row per drive (all drives; filter `is_data_drive`)
+
+| Column | Type | Meaning |
+|---|---|---|
+| `serial_number` | STRING | Drive identifier (unique) |
+| `model`, `model_short`, `manufacturer` | STRING | Most frequent normalized model for the drive |
+| `capacity_bytes`, `is_data_drive` | BIGINT, BOOLEAN | As in silver |
+| `first_date`, `last_date` | DATE | First / last observed day in the window |
+| `n_obs_days` | BIGINT | Observed drive-days (rows); sums to silver row count |
+| `observed_days` | INT | Calendar span `last_date - first_date + 1` (≥ `n_obs_days`; gaps are not imputed) |
+| `failed` | INT | 1 iff the last observed row has `failure = 1` |
+| `failure_date` | DATE | `last_date` for failed drives, else null |
+| `censored` | INT | `1 - failed` (right-censored) |
+| `event` | STRING | `failed`, `censored_window_end` (running on the last window day), `censored_left_fleet` |
+| `left_truncated` | INT | 1 if first seen on the window's first day (already in service before the window) |
+| `poh_first`, `poh_last` | BIGINT | Wraparound-corrected SMART 9 power-on hours at first / last observation |
+| `entry_age_days` | DOUBLE | `poh_first / 24`: age when observation starts (delayed-entry time for survival) |
+| `exit_age_days` | DOUBLE | `entry_age_days + observed_days`: age at failure or censoring |
+| `age_ok` | INT | 1 if SMART 9 is present, ≤ 15 years, and non-decreasing; ages are null in analyses otherwise |
+| `n_failure_rows`, `reappeared_after_failure` | INT | Failure-semantics audit (0 reappearances so far) |
+| `n_models`, `n_capacities` | INT | Distinct values seen for the drive (audit) |
+| `window_start`, `window_end` | DATE | Data window used for this build |
+
+### `backblaze.gold.model_period_stats` — one row per model per quarter
+
+| Column | Type | Meaning |
+|---|---|---|
+| `model`, `model_short`, `manufacturer`, `capacity_bytes`, `is_data_drive` | | Model attributes (from `drive_lifetimes`) |
+| `quarter` | STRING | e.g. `Q2_2026` |
+| `drive_count` | BIGINT | Distinct drives observed in the quarter |
+| `drive_days` | BIGINT | Drive-day rows in the quarter |
+| `failures` | BIGINT | Failure rows in the quarter |
+| `mean_age_days` | DOUBLE | Mean drive-day age (drives with `age_ok`) |
+| `period_start`, `period_end` | DATE | First / last date observed for the model in the quarter |
+| `afr_pct` | DOUBLE | `failures / (drive_days / 365) * 100` |
+
+### `backblaze.gold.model_age_stats` — one row per model per quarter per age year
+
+Same model attributes and `quarter`, plus `age_year` (floor of age in years at that drive-day; −1 when
+`age_ok = 0`), `drive_count`, `drive_days`, `failures`. Input to the age-aware Bayesian model.
+
+### `backblaze.gold.drive_day_features` — one row per data drive per day (partitioned by `quarter`)
+
+Definitions in `src/reliability/features.py` and `labels.py`; the Spark output is checked against
+those reference implementations on 200 sampled drives per quarter.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `serial_number`, `date`, `quarter` | | Keys |
+| `model`, `manufacturer`, `capacity_bytes`, `age_days` | | Drive attributes (`age_days` null when `age_ok = 0`) |
+| `s{a}` | BIGINT | Current raw SMART a, a ∈ {5, 187, 188, 197, 198, 199, 10, 192, 193, 12} |
+| `s{a}_d7`, `s{a}_d30` | DOUBLE | Change vs. earliest non-null value within the past 7 / 30 calendar days |
+| `s{a}_ever` | INT | SMART a was > 0 on any day up to and including `date` |
+| `temp_max30` | DOUBLE | Max SMART 194 (temperature) over the past 30 days |
+| `any_crit_now`, `any_crit_ever` | INT | Any of SMART 5/187/188/197/198 > 0 today / ever (simple-rule baseline) |
+| `days_to_failure` | INT | Days until the drive's failure (null if it does not fail in the window) |
+| `fail_7d`, `fail_30d` | INT | Fails within the next 7 / 30 days, counting today |
+| `label_7d_known`, `label_30d_known` | BOOLEAN | False when the horizon extends past the window end for a non-failed drive (excluded from training and evaluation) |
