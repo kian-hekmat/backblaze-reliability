@@ -172,9 +172,13 @@ Work through phases in order. A phase is complete only when every item in its **
 2. **External validation:** reproduce Backblaze's published quarterly tables for at least two quarters inside the data window. Pass criterion: drive counts and drive-days match exactly per model; any failure-count differences are listed and explained (Backblaze reclassifies some failures after publishing). Include a sensitivity check on the known cosmetic-failure episode (MG08ACA16TEY, Q3 2025).
 3. **Kaplan-Meier survival curves** per drive model, by drive age, handling right-censoring and left truncation (delayed entry) correctly.
 4. **Hierarchical Bayesian failure rates (NumPyro):**
-   - Failures per model × age bucket ~ Poisson(rate × drive-years), with a shared age effect.
-   - Per-model rates drawn from a shared distribution by manufacturer (partial pooling), with a weakly informative prior at the manufacturer level (only ~4 groups), so models with few drive-days borrow strength from similar models.
-   - Report posterior medians and 90% credible intervals for every model, both age-adjusted and at the model's observed age mix, next to raw AFR.
+   - Failures per model × quarter ~ Poisson(rate × drive-years), with a model × quarter random effect (overdispersion:
+     observed quarterly counts vary ~3× more than Poisson).
+   - Per-model rates drawn from a shared distribution by manufacturer (partial pooling), with a weakly informative prior
+     at the manufacturer level (only ~4 groups), so models with few drive-days borrow strength from similar models.
+   - **No shared age curve** (decided with Kian 2026-10-14, option A): a cross-model age curve is confounded with drive
+     generation and over-predicted out of time. Age effects are estimated within each model (step 3 and step 5).
+   - Report posterior medians and 90% credible intervals for every model next to raw AFR.
 5. **Hazard shape:** fit a Weibull lifetime model with right-censoring and delayed entry for the drive models with enough failures, and report whether the hazard is decreasing (early-life failures), roughly constant, or increasing (wear-out).
 
 **Verification**
