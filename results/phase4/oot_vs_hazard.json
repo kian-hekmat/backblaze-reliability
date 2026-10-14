@@ -1,0 +1,27 @@
+{
+  "models": 24,
+  "spearman_rho_shape_vs_log_actual_over_pred": 0.6295652173913043,
+  "p_value": 0.000979490126448207,
+  "median_k_by_outcome": {
+    "above": 1.7185519423703624,
+    "below": 0.646914016023582,
+    "covered": 1.0816082508973535
+  },
+  "counts_by_outcome_and_hazard": {
+    "constant": {
+      "above": 0,
+      "below": 1,
+      "covered": 8
+    },
+    "decreasing": {
+      "above": 1,
+      "below": 1,
+      "covered": 2
+    },
+    "increasing": {
+      "above": 5,
+      "below": 0,
+      "covered": 6
+    }
+  }
+}
