@@ -1,6 +1,7 @@
 """Download gold Parquet exports from the Databricks volume and verify them against the export manifest.
 
-Usage: uv run python scripts/pull_exports.py [table ...]   (default: drive_lifetimes model_period_stats model_age_stats)
+Usage: uv run python scripts/pull_exports.py [table ...]   (default: drive_lifetimes model_period_stats model_age_stats;
+       early-warning sets: ew_train ew_test, verified against ew_manifest.json)
 Writes data/exports/<table>/*.parquet and fails if row counts or sums differ from _manifest.json.
 """
 
@@ -27,8 +28,14 @@ def cp(src, dst, recursive=False):
                    check=True, capture_output=True)
 
 
-cp(f"{VOL}/_manifest.json", out / "_manifest.json")
-manifest = json.loads((out / "_manifest.json").read_text())
+manifest = {}
+if any(not t.startswith("ew_") for t in tables):
+    cp(f"{VOL}/_manifest.json", out / "_manifest.json")
+    manifest.update(json.loads((out / "_manifest.json").read_text()))
+if any(t.startswith("ew_") for t in tables):  # early-warning sets (notebook 41): verify row counts
+    cp(f"{VOL}/ew_manifest.json", out / "ew_manifest.json")
+    ew = json.loads((out / "ew_manifest.json").read_text())
+    manifest.update({t: {"rows": ew[t]["rows"]} for t in ("ew_train", "ew_test")})
 ok = True
 for t in tables:
     shutil.rmtree(out / t, ignore_errors=True)
