@@ -1,0 +1,74 @@
+{
+  "Q2_2026": {
+    "published_models": 31,
+    "models_found_in_pipeline": 31,
+    "drive_count_exact": 31,
+    "drive_days_exact": 31,
+    "failures_exact": 21,
+    "failures_total_backblaze": 1498,
+    "failures_total_pipeline_same_models": 1516,
+    "models_with_failure_diff": [
+      {
+        "model_short": "HUH721212ALE600",
+        "failures_backblaze": 7,
+        "failures_pipeline": 8,
+        "failures_diff": 1
+      },
+      {
+        "model_short": "HUH721212ALE604",
+        "failures_backblaze": 109,
+        "failures_pipeline": 110,
+        "failures_diff": 1
+      },
+      {
+        "model_short": "ST8000NM0055",
+        "failures_backblaze": 111,
+        "failures_pipeline": 112,
+        "failures_diff": 1
+      },
+      {
+        "model_short": "ST10000NM0086",
+        "failures_backblaze": 22,
+        "failures_pipeline": 23,
+        "failures_diff": 1
+      },
+      {
+        "model_short": "ST16000NM001G",
+        "failures_backblaze": 56,
+        "failures_pipeline": 57,
+        "failures_diff": 1
+      },
+      {
+        "model_short": "ST24000NM002H",
+        "failures_backblaze": 78,
+        "failures_pipeline": 82,
+        "failures_diff": 4
+      },
+      {
+        "model_short": "MG08ACA16TA",
+        "failures_backblaze": 100,
+        "failures_pipeline": 102,
+        "failures_diff": 2
+      },
+      {
+        "model_short": "MG08ACA16TEY",
+        "failures_backblaze": 44,
+        "failures_pipeline": 46,
+        "failures_diff": 2
+      },
+      {
+        "model_short": "WUH721816ALE6L0",
+        "failures_backblaze": 30,
+        "failures_pipeline": 32,
+        "failures_diff": 2
+      },
+      {
+        "model_short": "WUH721816ALE6L4",
+        "failures_backblaze": 77,
+        "failures_pipeline": 80,
+        "failures_diff": 3
+      }
+    ],
+    "models_with_count_or_days_diff": []
+  }
+}
