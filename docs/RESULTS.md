@@ -125,10 +125,87 @@ Weibull with right-censoring and delayed entry (age from power-on hours), for th
   runs had divergences in 11 of 40 fits and max R-hat 1.12. The real-data fit uses 4 chains × 1,000 draws after
   3,000 warmup and had none.
 
-## 4. Second result: early warning
+## 4. Second result: early warning from SMART telemetry
 
-*Pending: Phase 5 is running.*
+Setup:
+- Drives are split 70/30 by a hash of the serial number. Train: train drives before 2025-07-01. Test: test drives
+  from 2025-07-01. 0 serials appear in both ([`split_checks.json`](../results/phase5/split_checks.json)).
+- Training keeps every positive row and 2% of negative rows. Evaluation uses the **full natural test distribution**:
+  33,488,446 test drive-days with known labels, of which 36,595 are positive at the 30-day horizon (prevalence
+  0.109%), covering 1,459 failed test drives.
+- Simple rule: alert when any of SMART 5/187/188/197/198 raw is nonzero.
+
+### 4.1 Headline: PR-AUC, 30-day horizon ([`metrics_30d.json`](../results/phase5/metrics_30d.json))
+
+| Model | PR-AUC (30-day) | PR-AUC (7-day) |
+|---|---|---|
+| Simple rule | 0.0067 | 0.0015 |
+| Logistic regression | 0.092 | 0.043 |
+| **LightGBM** | **0.123** | **0.069** |
+
+The rule fires on **80 of every 1,000 drive-days** (8% of the fleet on any day), because a nonzero reallocated-sector
+or pending-sector count is common on healthy drives. It is a yes/no rule, so it has exactly one operating point.
+
+### 4.2 Operating points: what a reliability team would actually run
+
+Drive level, 30-day model ([`metrics_30d.csv`](../results/phase5/metrics_30d.csv)):
+
+| Policy | Alerts / 1,000 drive-days | Failed drives alerted ≥ 7 days ahead | Median lead (days) | Healthy drives falsely alerted / 1,000 drive-years |
+|---|---|---|---|---|
+| Simple rule | 80.3 | 72.1% | 112 | 103.8 |
+| LightGBM, same budget as rule | 80.3 | 82.5% | 116 | 260.2 |
+| **LightGBM, 5 / 1,000** | 5.0 | **64.6%** | 68 | **24.9** |
+| LightGBM, 1 / 1,000 | 1.0 | 39.7% | 35 | 6.4 |
+
+- At the rule's own alert budget, LightGBM is only modestly better on drive-days (recall 75.1% vs 68.1%). Spread
+  across more drives, it alerts more healthy drives.
+- The real gain is **lower operating points**. At 5 alerts per 1,000 drive-days, LightGBM gives two-thirds of
+  failing drives a week or more of warning while falsely flagging ~2.5% of healthy drives per year, a quarter of the
+  rule's false-alarm load. The rule can't run at that budget.
+- At the 7-day horizon the ranking is the same ([`metrics_7d.csv`](../results/phase5/metrics_7d.csv)). At 5 / 1,000,
+  LightGBM alerts 66.4% of failing drives ≥ 7 days ahead, with 32.6 healthy drives falsely alerted per 1,000
+  drive-years.
+- Lead times are measured from the first alert within the test year, so leads longer than the test window are
+  truncated.
+
+### 4.3 By manufacturer ([`metrics_by_manufacturer_30d.csv`](../results/phase5/metrics_by_manufacturer_30d.csv))
+
+| Manufacturer | LightGBM PR-AUC | Rule false alarms / 1,000 drive-days | Failed test drives with no critical SMART signal ever |
+|---|---|---|---|
+| Seagate | 0.174 | 145.3 | 117 of 574 (20%) |
+| Toshiba | 0.127 | 47.9 | 158 of 440 (36%) |
+| HGST | 0.092 | 98.1 | 32 of 273 (12%) |
+| WDC | 0.068 | 28.4 | 39 of 172 (23%) |
+
+- SMART 187/188 are reported almost only by Seagate. The rule is noisiest on Seagate (healthy drives often carry
+  nonzero 187/188), and LightGBM gains most there.
+- Toshiba failures are the least visible to SMART: over a third never showed a critical attribute.
+
+### 4.4 What drives predictions, and what is never caught
+
+- Top LightGBM features by gain ([`feature_importance_30d.csv`](../results/phase5/feature_importance_30d.csv)): any
+  critical attribute ever nonzero (42%), SMART 197 ever nonzero (14%), 30-day change in SMART 187 (8%), any critical
+  attribute nonzero today (7%), 30-day change in SMART 5 (5%). Age contributes 2%.
+- **Undetected failures** ([`undetected_30d.json`](../results/phase5/undetected_30d.json)): at the rule's budget,
+  LightGBM never alerts on 183 of 1,459 failed test drives (12.5%). **181 of those 183 had no critical SMART signal at
+  any point**: they are sudden failures that telemetry of this kind cannot predict. By manufacturer: Toshiba 93,
+  Seagate 45, WDC 30, HGST 15.
+- Leakage review: PR-AUC is ~113× prevalence, not implausibly high. Top features are SMART history, not proxies for
+  the label. The split checks confirm no serial overlap, labels look forward only, and no positive label falls after
+  a drive's failure date.
 
 ## 5. Reliability decisions
 
-*Written after Phase 5.*
+1. **Replace or watch the high-risk models first, and budget above their trailing AFR if they are wearing out.**
+   - Seagate ST12000NM0007 (7.2% [5.8, 8.9]), ST14000NM0138 (6.0%) and ST10000NM0086 (5.5%; Weibull k = 2.02,
+     wear-out) fail at 5–7× the fleet's best models.
+   - For wear-out models (Weibull k > 1), next year's failures came in above the trailing rate. Forecast error
+     tracked hazard shape (ρ = 0.63), e.g. WUH721816ALE6L0: 83 actual vs 18 predicted. Size spares for those models
+     above their historical AFR (§3.3, §3.4).
+2. **Don't rank or retire models on raw AFR from small populations.** One failure in 2,240 drive-days gives a 16.3% raw
+   AFR; the posterior is 2.9% with an interval of 0.8–10.6%. Use the posterior interval, and gather more drive-days
+   before acting on models whose interval spans the fleet range (§3.2).
+3. **Run SMART alerting from a model at a chosen budget, not the any-nonzero rule.** The rule flags ~10% of healthy
+   drives per year. LightGBM at 5 alerts per 1,000 drive-days alerts 64.6% of failing drives at least a week ahead
+   (median 68 days of warning), while flagging ~2.5% of healthy drives per year. About 1 in 8 failures (12.5%) give
+   no SMART warning at all, so redundancy, not prediction, has to cover those (§4.2, §4.4).
