@@ -1,0 +1,16 @@
+{
+  "quarter": "Q2_2026",
+  "raw_rows": 31968003,
+  "rows_after_dedup": 31968003,
+  "models_pandas": 80,
+  "models_pipeline": 80,
+  "models_in_both": 80,
+  "all_drive_counts_match": true,
+  "all_drive_days_match": true,
+  "all_failures_match": true,
+  "all_afr_match": true,
+  "total_drive_days_pandas": 31968003,
+  "total_drive_days_pipeline": 31968003,
+  "total_failures_pandas": 1522,
+  "total_failures_pipeline": 1522
+}
