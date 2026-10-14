@@ -24,79 +24,97 @@ and how much warning telemetry buys at what alert load.
 - **Scope:** 12 quarters, Q3 2023 through Q2 2026 (2023-07-01 to 2026-06-30). The exact row, drive, model
   and failure counts for the full scope will come from `results/scale.json` once the pipeline has
   processed it. They are not stated here yet.
-- **Profiled so far (Q2 2026 only)**, from [`results/profiling/Q2_2026/summary.json`](results/profiling/Q2_2026/summary.json):
-  31,968,003 drive-day rows, 359,101 drives, 81 raw model strings, 1,522 failure rows. The drive count
-  matches the 359,101 in Backblaze's Q2 2026 report.
+- **Processed so far: Q2 2026 only.** 31,968,003 drive-day rows, 359,101 drives (355,142 data drives ≥ 4 TB),
+  80 normalized models, 1,522 failures. Sources: [`results/profiling/Q2_2026/summary.json`](results/profiling/Q2_2026/summary.json)
+  and the pipeline checks. The drive count matches the 359,101 in Backblaze's Q2 2026 report.
 
-## Architecture (planned; see Progress for what exists)
+## Architecture
 
 ```
 Backblaze quarterly ZIPs
-        │  downloaded locally, uploaded to a Unity Catalog volume
+        │  downloaded locally, uploaded unchanged to a Unity Catalog volume
         ▼
-Databricks (Free Edition, serverless)          one quarter per run, idempotent, resumable
-  bronze  raw strings + lineage columns         ── keeps the source exactly as published
-  silver  typed, deduplicated, normalized       ── one clean row per (date, drive)
-  gold    drive_lifetimes, model_period_stats,  ── analysis-ready shapes
-          drive_day_features
-        │  Parquet exports
-        ▼
-Snowflake (trial)  BACKBLAZE.GOLD / ANALYTICS   ── serving layer: SQL analysis + aggregate extracts
-        │  CSV extracts (aggregates only)
-        ▼
-Tableau Public dashboard                        ── fleet reliability, lifetime risk, early warning
+Databricks (Free Edition, serverless)                 one quarter per run, idempotent, resumable
+  bronze     raw strings + lineage columns            ── keeps the source exactly as published
+  silver     typed, deduplicated, normalized          ── one clean row per (date, drive)
+  gold       drive_lifetimes, model_period_stats,     ── analysis-ready shapes for survival,
+             model_age_stats, drive_day_features         failure rates and early warning
+  analytics  views + SQL on the SQL warehouse         ── serving layer for analysis and Tableau extracts
+        │                          ▲
+        │ Parquet exports          │ results tables (Bayesian rates, survival curves, alert scores)
+        ▼                          │
+Local modeling (NumPyro, lifelines, LightGBM) ── src/reliability, unit-tested
+        │
+        ▼  aggregate CSV extracts (Tableau Public cannot connect live)
+Tableau Public dashboard                              ── fleet reliability, lifetime risk, early warning
 ```
 
-Modeling (Kaplan-Meier, Weibull, hierarchical Bayesian rates in NumPyro, LightGBM early warning) lives
-in `src/reliability/` as plain, unit-tested Python.
+One platform serves the data. A separate warehouse (Snowflake) was planned, then dropped: at this size
+it added a copy of the data and a reconciliation step without meeting any need Databricks SQL couldn't
+(see [`docs/DECISIONS.md`](docs/DECISIONS.md), 2026-10-14).
 
 ## Progress
 
 | Phase | Status | Evidence |
 |---|---|---|
-| 0. Setup: repo, Python env, Snowflake objects and roles, Databricks catalog | **Done** | [`results/phase0_role_check.txt`](results/phase0_role_check.txt): reader role can select but not create, insert or drop |
+| 0. Setup: repo, Python env, CI, Databricks catalog/schemas/volumes | **Done** | `databricks/00_setup_catalog.py`; pytest CI |
 | 1. Data profiling (Q2 2026) and data-quality rules | **Done** | [`results/profiling/Q2_2026/`](results/profiling/Q2_2026/), [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md), [`docs/DECISIONS.md`](docs/DECISIONS.md) |
-| 2. Vertical slice: one quarter through bronze, silver, gold, Snowflake, Tableau | In progress | AFR and model-normalization logic unit-tested; bronze/silver notebooks written |
-| 3. Full-scope Databricks pipeline (12 quarters) | Not started | Raw ZIPs being uploaded to the Databricks volume |
+| 2. Vertical slice: Q2 2026 through bronze, silver, gold, analytics views, Tableau extract | In progress | Bronze → silver → gold → Parquet export run and reconciled for Q2 2026 (below). Analytics views, pandas AFR cross-check and extract still to do |
+| 3. Full-scope pipeline (12 quarters) | Not started | All 12 raw ZIPs uploaded and size-verified |
 | 4. Survival and Bayesian failure rates | Not started | |
 | 5. Early-warning prediction | Not started | |
-| 6. Snowflake serving layer and analysis queries | Not started | |
+| 6. Serving layer (Databricks SQL) and analysis queries | Not started | |
 | 7. Tableau Public dashboard | Not started | |
+
+**Q2 2026 slice: reconciliation so far** (from the pipeline's checks in `backblaze.ops.quarter_status`):
+- Raw CSV data lines = bronze = silver = 31,968,003 rows (0 duplicate (date, serial) rows; silver key unique).
+- `drive_lifetimes`: 359,101 drives, one row each, drive-days summing to 31,968,003; all 1,522 failed drives
+  have `failed = 1`.
+- `model_period_stats` / `model_age_stats` totals equal silver (31,968,003 drive-days, 1,522 failures).
+- `drive_day_features`: 31,613,498 rows (exactly the data-drive rows). Spark features match the reference
+  implementation on 200 sampled drives with 0 mismatches (the no-future-data check).
+- Drive ages from SMART 9, after correcting a counter wraparound on two Seagate 8 TB models, are within
+  1.5 months of Backblaze's published average age for 30 of 31 models
+  ([`results/validation/age_check_Q2_2026.csv`](results/validation/age_check_Q2_2026.csv)).
 
 ## Repository layout
 
 ```
-databricks/      notebooks: 00 setup, 10 bronze, 20 silver, 3x gold, 40 export; run_notebook.sh
-src/reliability/ pure Python: afr, normalize (survival, bayes, features, labels, early_warning to come)
-snowflake/       00_setup.sql (env), 01_verify_roles.sh, then tables / load / validate / queries / extracts
-scripts/         local profiling and documentation helpers
-tests/           pytest unit tests
-results/         saved outputs backing every reported number
-docs/            DECISIONS, DATA_DICTIONARY (RESULTS, LIMITATIONS, TALK_NOTES to come)
+databricks/        notebooks: 00 setup, 10 bronze, 20 silver, 30–32 gold, 40 export, 50 results load; run_notebook.sh
+databricks/sql/    analytics views, validation, analysis queries, Tableau extracts (in progress)
+databricks.yml     asset bundle: the quarterly pipeline job
+src/reliability/   pure Python: afr, normalize, age, features, labels (survival, bayes, early_warning to come)
+scripts/           local helpers: profiling, Databricks SQL runner, validation checks
+tests/             pytest unit tests (run in CI on every push)
+results/           saved outputs backing every reported number
+docs/              DECISIONS, DATA_DICTIONARY, LIMITATIONS (RESULTS, TALK_NOTES to come)
 ```
 
 ## Reproducing what exists so far
 
-Prerequisites: [uv](https://docs.astral.sh/uv/), Snowflake CLI with a default connection, and Databricks
-CLI with a configured profile (`DATABRICKS_PROFILE`, default `kianhekmatnejad`). No credentials are stored
-in this repo.
+Prerequisites: [uv](https://docs.astral.sh/uv/) and the Databricks CLI with a configured profile
+(`DATABRICKS_PROFILE`, default `kianhekmatnejad`). No credentials are stored in this repo.
 
 ```bash
-uv sync                                  # Python 3.12 environment
-uv run pytest                            # unit tests
-snow sql -f snowflake/00_setup.sql       # Snowflake database, schemas, warehouses, roles, monitor (re-runnable)
-bash snowflake/01_verify_roles.sh        # role permission checks
-bash databricks/run_notebook.sh 00_setup_catalog   # Databricks catalog, schemas, volumes
-uv run python scripts/profile_quarter.py data/raw/csv/Q2_2026/data_Q2_2026 Q2_2026   # profiling
+uv sync && uv run pytest                                  # environment + unit tests
+bash databricks/run_notebook.sh 00_setup_catalog          # catalog, schemas, volumes, control table
+# upload data_<Qn>_<YYYY>.zip files to /Volumes/backblaze/bronze/raw/zips/ (download script to come)
+bash databricks/run_notebook.sh 10_ingest_bronze '{"quarter":"Q2_2026"}'
+bash databricks/run_notebook.sh 20_bronze_to_silver '{"quarter":"Q2_2026"}'
+bash databricks/run_notebook.sh 30_gold_drive_lifetimes
+bash databricks/run_notebook.sh 31_gold_model_stats
+bash databricks/run_notebook.sh 32_gold_features '{"quarter":"Q2_2026"}'
+bash databricks/run_notebook.sh 40_export_gold
+# or the whole chain for the next unprocessed quarter:
+databricks bundle deploy && databricks bundle run quarterly_pipeline
 ```
-
-A data download script and full pipeline commands will be added as those phases complete.
 
 ## Key decisions
 
 See [`docs/DECISIONS.md`](docs/DECISIONS.md). Highlights so far:
 - Failures follow Backblaze's semantics: `failure=1` on a drive's last day. Drives that leave without a
   failure row, or survive the window, are right-censored, not counted as non-failures.
-- Drive age comes from SMART 9 (power-on hours), so survival curves account for drives that were already
-  old when the window opens (left truncation).
+- Drive age comes from SMART 9 (power-on hours), with a counter wraparound on ST8000NM0055/ST8000DM002 corrected.
+  Survival by age uses delayed entry, because most drives are already old when the window opens.
 - Analyses use data drives only (≥ 4 TB). Boot drives and SSDs are excluded, as in Backblaze's reports.
+- Databricks-only: Snowflake was dropped as a serving layer (2026-10-14).

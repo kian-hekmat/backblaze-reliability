@@ -15,7 +15,7 @@ CLAUDE.md Section 3 are not repeated here unless they needed a concrete value.
 - **Files:** `data_<Qn>_<YYYY>.zip` from `https://f001.backblazeb2.com/file/Backblaze-Hard-Drive-Data/`,
   12 ZIPs totalling ~14.9 GB compressed (Q2 2026 alone is 2.09 GB).
 
-## 2026-10-13 — Snowflake environment
+## 2026-10-13 — Snowflake environment (SUPERSEDED 2026-10-14: Databricks-only)
 
 - **Account:** the existing `learning` Snowflake CLI connection (account VN04570, AWS us-east-2), confirmed by Kian.
 - **Trial end date: 2026-10-27** (confirmed by Kian on 2026-10-13 as "ends in 14 days").
@@ -112,7 +112,7 @@ Every rule is applied in silver, and every quarter logs the count of rows or dri
 
 - `scripts/`: local helper scripts (profiling, dictionary generation) that write to `results/`.
 - `databricks/run_notebook.sh`: syncs notebooks to the workspace and runs one as a serverless one-time job.
-- `snowflake/01_verify_roles.sh`: Phase 0 role verification (statements that must fail can't share one SQL file).
+- *(Removed 2026-10-14)* `snowflake/01_verify_roles.sh`.
 
 ## 2026-10-13 — Repository visibility
 
@@ -137,11 +137,10 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
 4. **External validation criterion.** Exact match of drive counts and drive-days per model; failure-count
    differences must be listed and explained (Backblaze reclassifies some failures after publishing). Add a
    sensitivity check on the known cosmetic-failure episode (MG08ACA16TEY, Q3 2025).
-5. **Snowflake timeline.** Gold tables load as soon as full scope is built; results tables load as
+5. *(Superseded 2026-10-14: Databricks-only.)* **Snowflake timeline.** Gold tables load as soon as full scope is built; results tables load as
    produced; all Tableau extracts are exported to `tableau/` by ~2026-10-24, before the trial ends.
-6. **Feature table scope.** `drive_day_features` covers data drives only. Snowflake receives all gold and
-   results tables in full except daily features, which are reduced to failed drives' histories plus
-   alerted and scored drive-days.
+6. **Feature table scope.** `drive_day_features` covers data drives only. *(The Snowflake part is superseded 2026-10-14.)*
+   Early-warning daily scores are loaded into Databricks results tables for the test period only.
 7. **Per-manufacturer reporting** of early-warning metrics, because SMART 187/188 are effectively
    Seagate-only.
 8. **Drive-level early-warning metrics** in addition to drive-day metrics: fraction of failed drives
@@ -167,3 +166,30 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   MG08ACA16TA at +3.1 months (`results/validation/age_check_Q2_2026.csv`).
 - **Alternatives:** dropping these drives' ages (loses the oldest, most wear-out-relevant models);
   using first-seen date as age (left truncation makes that wrong for every drive installed before the window).
+
+## 2026-10-14 — Databricks-only: Snowflake dropped as the serving layer
+
+- **Decision (Kian):** serve everything from Databricks. The serving layer is Databricks SQL on the Free Edition
+  SQL warehouse:
+  - views in a new `backblaze.analytics` schema
+  - analysis queries and Tableau extract queries in `databricks/sql/`
+  - local modeling results (Bayesian, survival, early warning) loaded back into `backblaze.gold` results
+    tables by `50_load_results.py`
+- **Why:**
+  - Tableau Public cannot connect live to either platform, so the dashboard uses CSV extracts regardless.
+  - The served gold tables are small: ~360k drives per quarter of lifetimes, hundreds of model rows.
+    Separating processing from serving solves concurrency and cost-isolation problems this project doesn't have.
+  - A second platform added a full data copy, an export/stage/load/reconcile loop, a credit budget, and a
+    trial that expires on 2026-10-27, after which the serving layer would no longer exist.
+  - Kian's direction: the project should be functional, not demonstrative.
+- **Alternatives:** keep Snowflake as the serving layer (original plan); keep a Snowflake loader as an optional
+  extra (only worthwhile if a target role names Snowflake).
+- **What changed:**
+  - Removed `snowflake/` (setup, role check, tables, load, validate scripts), `scripts/validate_snowflake.py`
+    and `results/phase0_role_check.txt` (they remain in git history).
+  - Phase 6 is now a Databricks SQL serving layer.
+  - CLAUDE.md, README and LIMITATIONS are rewritten to match.
+- **Snowflake account objects** created on 2026-10-13 (database `BACKBLAZE`, warehouses `LOAD_WH`/`BI_WH`,
+  roles, resource monitor) hold no data and are left to expire with the trial unless Kian asks to drop them.
+- **Parquet export (`40_export_gold.py`) is kept**, now to feed local modeling (NumPyro, LightGBM) and the
+  independent pandas checks.

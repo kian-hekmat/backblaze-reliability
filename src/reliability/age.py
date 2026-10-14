@@ -28,7 +28,7 @@ def corrected_poh(model: str, poh: float | None) -> float | None:
 
 
 def corrected_poh_sql(model_col: str = "model", poh_col: str = "smart_9_raw") -> str:
-    """Same rule as a SQL expression (Spark SQL / DuckDB / Snowflake compatible)."""
+    """Same rule as a SQL expression (Spark SQL / DuckDB compatible)."""
     models = ", ".join(f"'{m}'" for m in sorted(WRAP_MODELS))
     return (f"CASE WHEN {poh_col} IS NULL OR {poh_col} < 0 THEN NULL "
             f"WHEN {model_col} IN ({models}) AND {poh_col} < {WRAP_AMBIGUITY_HOURS} "

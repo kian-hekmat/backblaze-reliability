@@ -39,7 +39,8 @@ Updated as the project progresses. Each item states what is limited, its likely 
 
 ## Platform constraints
 
-- Snowflake was a trial account ending 2026-10-27. Tableau extracts are exported to `tableau/` before then, so
-  the dashboard does not depend on the trial.
-- Daily per-drive features (~355k drives/day) are kept in Databricks. Snowflake receives a reduced extract
-  (DECISIONS, approved change 6).
+- Databricks Free Edition has a daily compute quota. Pipeline jobs process one quarter per run and resume
+  from `backblaze.ops.quarter_status`. If quotas force a subset, the processed quarters are named in
+  `results/scale.json`.
+- Bayesian and early-warning models run locally on gold exports, not on Databricks. Early-warning training
+  uses sampled non-failure rows; evaluation uses the full natural distribution of the test period.

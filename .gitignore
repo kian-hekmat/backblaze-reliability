@@ -15,7 +15,6 @@ data/
 config.toml
 connections.toml
 .databrickscfg
-snowflake/*.local.sql
 
 # OS
 .DS_Store

@@ -1,10 +1,9 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 40 — Export gold tables to Parquet for Snowflake
+# MAGIC # 40 — Export gold tables to Parquet for local modeling
 # MAGIC Writes each table to `/Volumes/<catalog>/gold/exports/<table>/` (overwritten each run) plus
-# MAGIC `_manifest.json` with exact row counts and sum checks, which `snowflake/30_validate.sql` reconciles against.
-# MAGIC `drive_day_features` is not exported in full (DECISIONS, approved change 6); its reduced
-# MAGIC Snowflake extract is produced after Phase 5 scoring.
+# MAGIC `_manifest.json` with exact row counts and sum checks; the local download is reconciled against it
+# MAGIC (`scripts/pull_exports.py`). `drive_day_features` is exported separately for Phase 5 (sampled train / full test).
 
 # COMMAND ----------
 
