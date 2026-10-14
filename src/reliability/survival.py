@@ -6,14 +6,14 @@ entry < t <= exit. Ignoring entry (treating every drive as observed from age 0) 
 because drives that failed before the window are invisible.
 
 Kaplan-Meier is implemented here (product-limit with a minimum-risk-set start, which lifelines lacks);
-the Weibull fit uses lifelines, which supports delayed entry. Times are in years.
+the Weibull MLE is implemented here on the log scale (lifelines' fitter diverged on real fleets). Times are in years.
 """
 
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from lifelines import WeibullFitter
+from scipy.optimize import minimize
 
 
 def km_curve(entry, exit, event, grid=None, min_at_risk: int = 1, label="km") -> pd.DataFrame:
@@ -73,15 +73,45 @@ class WeibullFit:
 
 
 def weibull_fit(entry, exit, event) -> WeibullFit:
-    """Weibull MLE with right-censoring and delayed entry. Hazard h(t) = (k/lam) (t/lam)^(k-1)."""
-    entry, exit, event = (np.asarray(x, dtype=float) for x in (entry, exit, event))
-    wf = WeibullFitter()
-    wf.fit(exit, event_observed=event, entry=entry)
-    k = float(wf.rho_)
-    lo = float(wf.summary.loc["rho_", "coef lower 95%"])
-    hi = float(wf.summary.loc["rho_", "coef upper 95%"])
+    """Weibull MLE with right-censoring and delayed entry. Hazard h(t) = (k/lam) (t/lam)^(k-1).
+
+    Log-likelihood: sum_i [ d_i log h(t_i) - ((t_i/lam)^k - (e_i/lam)^k) ], maximised over (log k, log lam), so both
+    stay positive; 95% CI for k from the inverse Hessian on the log scale. (lifelines' fitter optimises on the natural
+    scale and diverged to k ~ 0 on real fleets with many drives entering near age 0.)
+    """
+    e, t, d = (np.asarray(x, dtype=float) for x in (entry, exit, event))
+    t = np.maximum(t, 1e-9)
+
+    def nll(theta):
+        logk, loglam = theta
+        k, lam = np.exp(logk), np.exp(loglam)
+        log_h = logk - loglam + (k - 1) * (np.log(t) - loglam)
+        cum = (t / lam) ** k - (e / lam) ** k
+        return -(np.sum(d * log_h) - np.sum(cum))
+
+    # start at the exponential fit (k = 1, lam = exposure / events)
+    lam0 = max((t - e).sum() / max(d.sum(), 1), 1e-6)
+    res = minimize(nll, x0=[0.0, np.log(lam0)], method="BFGS")
+    if not res.success:
+        res = minimize(nll, x0=res.x, method="Nelder-Mead", options={"xatol": 1e-8, "fatol": 1e-8, "maxiter": 20000})
+    logk, loglam = res.x
+    H = _hessian(nll, res.x)
+    se_logk = float(np.sqrt(np.linalg.inv(H)[0, 0])) if np.all(np.isfinite(H)) else float("nan")
+    k = float(np.exp(logk))
+    lo, hi = float(np.exp(logk - 1.96 * se_logk)), float(np.exp(logk + 1.96 * se_logk))
     shape = "increasing" if lo > 1 else "decreasing" if hi < 1 else "constant"
-    return WeibullFit(k, (lo, hi), float(wf.lambda_), len(exit), int(event.sum()), shape)
+    return WeibullFit(k, (lo, hi), float(np.exp(loglam)), len(t), int(d.sum()), shape)
+
+
+def _hessian(f, x, h=1e-4):
+    x = np.asarray(x, dtype=float)
+    n = len(x)
+    H = np.zeros((n, n))
+    for a in range(n):
+        for b in range(n):
+            ea, eb = np.eye(n)[a] * h, np.eye(n)[b] * h
+            H[a, b] = (f(x + ea + eb) - f(x + ea - eb) - f(x - ea + eb) + f(x - ea - eb)) / (4 * h * h)
+    return H
 
 
 def weibull_hazard(age, shape, scale):

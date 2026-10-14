@@ -88,3 +88,25 @@ def test_km_min_risk_set_avoids_collapse_from_tiny_early_risk_set():
     assert np.isnan(guarded["survival"].iloc[0])                 # before start_age
     assert guarded["start_age"].iloc[0] >= 3.0
     assert 0.85 < guarded["survival"].iloc[1] < 0.95             # ~exp(-2/20) conditional on reaching 3
+
+
+def test_weibull_stable_with_many_drives_entering_near_zero():
+    """Regression: lifelines diverged to k ~ 0 when most drives enter near age 0 (new fleets)."""
+    rng = np.random.default_rng(7)
+    n = 40_000
+    entry = np.where(rng.random(n) < 0.5, rng.uniform(0, 0.02, n), rng.uniform(0, 2, n))
+    t = entry + 15.0 * rng.weibull(1.3, n)                      # residual life after entry (memory approx. ok)
+    keep = t > entry
+    entry, t = entry[keep], t[keep]
+    end = entry + 3.0
+    fit = weibull_fit(entry, np.minimum(t, end), (t <= end).astype(int))
+    assert 0.5 < fit.shape < 3.0 and np.isfinite(fit.scale) and fit.shape_ci[0] > 0
+
+
+def test_weibull_matches_lifelines_on_well_conditioned_data():
+    from lifelines import WeibullFitter
+    entry, exit, event = simulate(n=20_000, k=1.8, lam=12.0, seed=3)
+    ours = weibull_fit(entry, exit, event)
+    ref = WeibullFitter().fit(exit, event, entry=entry)
+    assert ours.shape == pytest.approx(ref.rho_, rel=1e-3)
+    assert ours.scale == pytest.approx(ref.lambda_, rel=1e-3)

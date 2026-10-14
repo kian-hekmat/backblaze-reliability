@@ -1,0 +1,51 @@
+{
+  "train_quarters": [
+    "Q3_2023",
+    "Q4_2023",
+    "Q1_2024",
+    "Q2_2024",
+    "Q3_2024",
+    "Q4_2024",
+    "Q1_2025",
+    "Q2_2025"
+  ],
+  "test_quarters": [
+    "Q3_2025",
+    "Q4_2025",
+    "Q1_2026",
+    "Q2_2026"
+  ],
+  "overdispersed": {
+    "models_predicted": 44,
+    "coverage_90": 0.6136363636363636,
+    "n_covered": 27,
+    "below_interval": 11,
+    "above_interval": 6,
+    "train_fit_diagnostics": {
+      "max_r_hat": 1.0060440301895142,
+      "min_ess": 1111.7487014552664,
+      "divergences": 1
+    }
+  },
+  "poisson_only": {
+    "models_predicted": 44,
+    "coverage_90": 0.5454545454545454,
+    "n_covered": 24,
+    "below_interval": 14,
+    "above_interval": 6,
+    "train_fit_diagnostics": {
+      "max_r_hat": 1.005344033241272,
+      "min_ess": 746.6508135627495,
+      "divergences": 0
+    }
+  },
+  "models_in_test_not_in_train": [
+    "ST12000NM002H",
+    "ST16000NM000G",
+    "ST16000NM002H",
+    "TOSHIBA MG11ACA16TE",
+    "TOSHIBA MG11ACA24TE",
+    "WDC WUH722016CLE6L4",
+    "WDC WUH722626ALE6L4"
+  ]
+}

@@ -260,3 +260,20 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   curation, not reflected in the daily `failure` flags. **Decision:** keep the daily-file flags (the only public,
   per-drive source) and state the +1.2% gap in RESULTS and LIMITATIONS. For a reliability team this means: AFRs
   from the raw daily files may run slightly above Backblaze's curated figures in some quarters.
+
+## 2026-10-14 — Phase 4 modeling findings on the full scope
+
+- **Overdispersion:** quarterly failure counts per model vary ~2.9x more than Poisson within the training years
+  (median dispersion index; up to 24x for HGST 12 TB models; `results/phase4/overdispersion_train_quarters.csv`).
+  Added a model x quarter random effect to the Bayesian model (sigma_mq ~ 0.42 on the full fit). Tested on synthetic
+  drifting fleets: Poisson-only forecasts under-cover and the overdispersed model reaches nominal coverage
+  (`tests/test_bayes.py`).
+- **Out-of-time coverage stayed low with the shared age curve** (Poisson-only 55%, overdispersed 61% of 44 models).
+  Diagnostic (`results/phase4/oot_age_diagnostic.json`): the shared age effect is learned across models (older
+  models are also older designs), rises to ~4x by age 6 and then falls. Applied within a model, it over-predicts
+  final-year failures for large models by 18% (4,388 actual vs 5,360 predicted). Without the age effect: 80% coverage,
+  +7% total. **Pending Kian's decision** on how to treat age in the Bayesian model.
+- **Weibull fitter replaced:** lifelines' fitter diverged to shape ~ 0 for three young fleets with many drives entering
+  near age 0. Replaced with a log-scale MLE that matches lifelines to 0.1% on well-conditioned data
+  (`tests/test_survival.py`).
+- **Sampler:** target_accept 0.99, 1,500 warmup → 0 divergences on the full fit (was 42 at 0.9).

@@ -8,6 +8,11 @@ Data: one row per (model, age_year) cell with exposure E = drive_days / 365 (dri
     beta[0] = 0,  beta[a] = beta[a-1] + sigma_age * e_a         (random-walk age effect shared by all models)
     mu0 ~ N(log 0.015, 1)   tau_mfr ~ HalfNormal(0.5)   sigma_model ~ HalfNormal(1)   sigma_age ~ HalfNormal(0.3)
 
+Optional overdispersion (default on): eps[i,q] ~ N(0, sigma_mq) multiplies model i's rate in quarter q, so a
+model's failure rate can drift between quarters (observed quarterly counts are ~3x more variable than Poisson;
+DECISIONS 2026-10-14). Reported AFRs are long-run means (x exp(sigma_mq^2 / 2)); forecasts draw fresh eps.
+sigma_mq ~ HalfNormal(0.5).
+
 Priors: mu0 centres the age-0 rate on ~1.5%/yr (Backblaze's fleet AFR is 1-2%) with a factor-of-e sd.
 tau_mfr is tight-ish because only ~4 manufacturers inform it. Non-centred parameterisation throughout.
 
@@ -31,7 +36,7 @@ from numpyro.infer import MCMC, NUTS
 MAX_AGE_YEAR = 10  # ages >= 10 years share one bucket
 
 
-def hier_model(model_mfr, cell_model, cell_age, exposure, n_age, n_mfr, failures=None):
+def hier_model(model_mfr, cell_model, cell_age, exposure, n_age, n_mfr, cell_mq=None, n_mq=0, failures=None):
     n_model = model_mfr.shape[0]
     mu0 = numpyro.sample("mu0", dist.Normal(jnp.log(0.015), 1.0))
     tau_mfr = numpyro.sample("tau_mfr", dist.HalfNormal(0.5))
@@ -47,23 +52,32 @@ def hier_model(model_mfr, cell_model, cell_age, exposure, n_age, n_mfr, failures
         e = numpyro.sample("e_age", dist.Normal(0, 1))
     beta = numpyro.deterministic("beta", jnp.concatenate([jnp.zeros(1), jnp.cumsum(sigma_age * e)]))
     log_mu = r[cell_model] + beta[cell_age] + jnp.log(exposure)
+    if cell_mq is not None:
+        sigma_mq = numpyro.sample("sigma_mq", dist.HalfNormal(0.5))
+        with numpyro.plate("model_quarters", n_mq):
+            z_mq = numpyro.sample("z_mq", dist.Normal(0, 1))
+        log_mu = log_mu + sigma_mq * z_mq[cell_mq]
     with numpyro.plate("cells", exposure.shape[0]):
         numpyro.sample("y", dist.Poisson(jnp.exp(log_mu)), obs=failures)
 
 
 @dataclass
 class Prepared:
-    cells: pd.DataFrame          # model, manufacturer, age_bucket, exposure, failures, model_idx
+    cells: pd.DataFrame          # model, manufacturer, [quarter,] age_bucket, exposure, failures, model_idx, [mq_idx]
     models: pd.DataFrame         # model, manufacturer, model_idx, mfr_idx
     manufacturers: list
     n_age: int
+    overdispersion: bool = False
+    n_mq: int = 0
 
 
-def prepare(df: pd.DataFrame) -> Prepared:
-    """df: model, manufacturer, age_year (>= 0), drive_days, failures (any granularity; summed to cells)."""
+def prepare(df: pd.DataFrame, overdispersion: bool = True) -> Prepared:
+    """df: model, manufacturer, age_year (>= 0), drive_days, failures (any granularity; summed to cells).
+    With overdispersion, df also needs `quarter`, and cells are kept per quarter."""
     d = df[df["age_year"] >= 0].copy()
     d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int)
-    cells = (d.groupby(["model", "manufacturer", "age_bucket"], as_index=False)
+    keys = ["model", "manufacturer", "age_bucket"] + (["quarter"] if overdispersion else [])
+    cells = (d.groupby(keys, as_index=False)
              .agg(drive_days=("drive_days", "sum"), failures=("failures", "sum")))
     cells = cells[cells["drive_days"] > 0]
     cells["exposure"] = cells["drive_days"] / 365.0
@@ -72,22 +86,32 @@ def prepare(df: pd.DataFrame) -> Prepared:
     models["model_idx"] = np.arange(len(models))
     models["mfr_idx"] = models["manufacturer"].map({m: i for i, m in enumerate(mfrs)})
     cells = cells.merge(models[["model", "model_idx"]], on="model")
-    return Prepared(cells, models, mfrs, MAX_AGE_YEAR + 1)
+    n_mq = 0
+    if overdispersion:
+        mq = cells[["model", "quarter"]].drop_duplicates().reset_index(drop=True)
+        mq["mq_idx"] = np.arange(len(mq))
+        cells = cells.merge(mq, on=["model", "quarter"])
+        n_mq = len(mq)
+    return Prepared(cells, models, mfrs, MAX_AGE_YEAR + 1, overdispersion, n_mq)
 
 
-def fit(prep: Prepared, num_warmup=1000, num_samples=1000, num_chains=4, seed=0, progress_bar=False) -> MCMC:
+def fit(prep: Prepared, num_warmup=1000, num_samples=1000, num_chains=4, seed=0, progress_bar=False,
+        target_accept=0.95) -> MCMC:
     c = prep.cells
-    mcmc = MCMC(NUTS(hier_model, target_accept_prob=0.9), num_warmup=num_warmup, num_samples=num_samples,
+    mcmc = MCMC(NUTS(hier_model, target_accept_prob=target_accept), num_warmup=num_warmup, num_samples=num_samples,
                 num_chains=num_chains, chain_method="sequential" if num_chains > 1 else "parallel",
                 progress_bar=progress_bar)
     mcmc.run(random.PRNGKey(seed), jnp.asarray(prep.models["mfr_idx"].to_numpy()),
              jnp.asarray(c["model_idx"].to_numpy()), jnp.asarray(c["age_bucket"].to_numpy()),
-             jnp.asarray(c["exposure"].to_numpy()), prep.n_age, len(prep.manufacturers), failures=jnp.asarray(c["failures"].to_numpy()))
+             jnp.asarray(c["exposure"].to_numpy()), prep.n_age, len(prep.manufacturers),
+             cell_mq=jnp.asarray(c["mq_idx"].to_numpy()) if prep.overdispersion else None, n_mq=prep.n_mq,
+             failures=jnp.asarray(c["failures"].to_numpy()))
     return mcmc
 
 
 def diagnostics(mcmc: MCMC) -> dict:
-    s = mcmc_summary(mcmc.get_samples(group_by_chain=True), prob=0.9)
+    samples = {k: v for k, v in mcmc.get_samples(group_by_chain=True).items() if k != "z_mq"}  # per-cell effects: thousands
+    s = mcmc_summary(samples, prob=0.9)
     rhat = {k: float(np.nanmax(v["r_hat"])) for k, v in s.items()}
     ess = {k: float(np.nanmin(v["n_eff"])) for k, v in s.items()}
     div = int(np.asarray(mcmc.get_extra_fields()["diverging"]).sum())
@@ -96,8 +120,12 @@ def diagnostics(mcmc: MCMC) -> dict:
 
 
 def _rates(mcmc: MCMC):
+    """Model log-rates (long-run mean, including the quarter-effect variance) and age effects."""
     s = mcmc.get_samples()
-    return np.asarray(s["r"]), np.asarray(s["beta"])  # (draws, models), (draws, ages)
+    r = np.asarray(s["r"])
+    if "sigma_mq" in s:
+        r = r + 0.5 * np.asarray(s["sigma_mq"])[:, None] ** 2   # E[exp(eps)] for eps ~ N(0, sigma_mq)
+    return r, np.asarray(s["beta"])  # (draws, models), (draws, ages)
 
 
 def model_estimates(prep: Prepared, mcmc: MCMC, prob=0.9) -> pd.DataFrame:
@@ -138,10 +166,13 @@ def age_effect(mcmc: MCMC, prob=0.9) -> pd.DataFrame:
 
 
 def predict_counts(prep: Prepared, mcmc: MCMC, new: pd.DataFrame, prob=0.9, seed=1) -> pd.DataFrame:
-    """Posterior predictive failure counts per model for new exposure (model, age_year, drive_days[, failures]).
+    """Posterior predictive failure counts per model for new exposure (model, age_year, drive_days[, quarter, failures]).
 
+    With overdispersion, each new (model, quarter) gets a fresh quarter effect drawn from N(0, sigma_mq).
     Models absent from the fit are skipped (no rate to predict from)."""
-    r, beta = _rates(mcmc)
+    s = mcmc.get_samples()
+    r, beta = np.asarray(s["r"]), np.asarray(s["beta"])
+    sig = np.asarray(s["sigma_mq"]) if "sigma_mq" in s else None
     rng = np.random.default_rng(seed)
     d = new[new["age_year"] >= 0].copy()
     d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int)
@@ -151,9 +182,13 @@ def predict_counts(prep: Prepared, mcmc: MCMC, new: pd.DataFrame, prob=0.9, seed
     for model, g in d.groupby("model"):
         if model not in idx:
             continue
-        E = np.zeros(prep.n_age)
-        np.add.at(E, g["age_bucket"].to_numpy(), g["drive_days"].to_numpy() / 365.0)
-        lam = np.exp(r[:, idx[model]][:, None] + beta) @ E
+        lam = np.zeros(r.shape[0])
+        periods = g.groupby("quarter") if (sig is not None and "quarter" in g) else [(None, g)]
+        for _, gq in periods:
+            E = np.zeros(prep.n_age)
+            np.add.at(E, gq["age_bucket"].to_numpy(), gq["drive_days"].to_numpy() / 365.0)
+            eps = rng.normal(0, 1, r.shape[0]) * sig if sig is not None else 0.0
+            lam += np.exp(r[:, idx[model]][:, None] + beta) @ E * np.exp(eps)
         draws = rng.poisson(lam)
         lo, med, hi = np.quantile(draws, q)
         row = {"model": model, "drive_days": int(g["drive_days"].sum()), "pred_lo": lo, "pred_median": med, "pred_hi": hi}

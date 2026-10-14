@@ -1,0 +1,91 @@
+{
+  "model": "TOSHIBA MG08ACA16TEY",
+  "excluded_quarter": "Q3_2025",
+  "by_quarter": [
+    {
+      "quarter": "Q1_2024",
+      "drive_days": 475970,
+      "failures": 8,
+      "afr_pct": 0.6134840431119608
+    },
+    {
+      "quarter": "Q1_2025",
+      "drive_days": 464361,
+      "failures": 14,
+      "afr_pct": 1.100436944532379
+    },
+    {
+      "quarter": "Q1_2026",
+      "drive_days": 435063,
+      "failures": 26,
+      "afr_pct": 2.1812932839611734
+    },
+    {
+      "quarter": "Q2_2024",
+      "drive_days": 464010,
+      "failures": 22,
+      "afr_pct": 1.7305661515915605
+    },
+    {
+      "quarter": "Q2_2025",
+      "drive_days": 466977,
+      "failures": 32,
+      "afr_pct": 2.5011938489475924
+    },
+    {
+      "quarter": "Q2_2026",
+      "drive_days": 439243,
+      "failures": 46,
+      "afr_pct": 3.8224855034684673
+    },
+    {
+      "quarter": "Q3_2023",
+      "drive_days": 480826,
+      "failures": 10,
+      "afr_pct": 0.7591103642481896
+    },
+    {
+      "quarter": "Q3_2024",
+      "drive_days": 477111,
+      "failures": 31,
+      "afr_pct": 2.371565526680374
+    },
+    {
+      "quarter": "Q3_2025",
+      "drive_days": 462943,
+      "failures": 209,
+      "afr_pct": 16.478270543025815
+    },
+    {
+      "quarter": "Q4_2023",
+      "drive_days": 473012,
+      "failures": 30,
+      "afr_pct": 2.314951840545272
+    },
+    {
+      "quarter": "Q4_2024",
+      "drive_days": 475327,
+      "failures": 15,
+      "afr_pct": 1.1518386289859401
+    },
+    {
+      "quarter": "Q4_2025",
+      "drive_days": 449560,
+      "failures": 51,
+      "afr_pct": 4.140715366135777
+    }
+  ],
+  "raw_afr_window_with": 3.2404195023257656,
+  "raw_afr_window_without": 2.0391221336636964,
+  "bayes_with": {
+    "afr_observed_mix_lo": 1.963615603341,
+    "afr_observed_mix_median": 2.453923901788425,
+    "afr_observed_mix_hi": 3.0603623075351227
+  },
+  "bayes_without": {
+    "afr_observed_mix_lo": 1.5861526424268249,
+    "afr_observed_mix_median": 1.9644444778266068,
+    "afr_observed_mix_hi": 2.4603135910035747
+  },
+  "max_shift_other_models_median_afr": 0.1234827443175397
+}

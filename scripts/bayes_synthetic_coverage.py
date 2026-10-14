@@ -1,4 +1,5 @@
-"""Phase 4 verification: 90% interval coverage of the hierarchical model on synthetic fleets with known rates.
+"""Phase 4 verification: 90% interval coverage of the hierarchical model (with model x quarter overdispersion)
+on synthetic fleets with known rates and true quarter-to-quarter drift (sigma_mq = 0.3).
 
 Uses the generator from tests/test_bayes.py. Writes results/phase4/bayes_synthetic_coverage.json.
 Usage: uv run python scripts/bayes_synthetic_coverage.py [n_sims]
@@ -17,8 +18,8 @@ from test_bayes import synth_fleet  # noqa: E402
 n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 40
 per_sim, by_size = [], {}
 for seed in range(n_sims):
-    df, truth, _ = synth_fleet(1000 + seed)
-    prep = prepare(df)
+    df, truth, _ = synth_fleet(1000 + seed, sigma_mq=0.3)   # data with true quarter-to-quarter drift
+    prep = prepare(df, overdispersion=True)
     mcmc = fit(prep, num_warmup=500, num_samples=500, num_chains=1, seed=seed)
     est = model_estimates(prep, mcmc)
     est["truth"] = est["model"].map(truth)
@@ -26,7 +27,7 @@ for seed in range(n_sims):
     d = diagnostics(mcmc)
     per_sim.append({"seed": 1000 + seed, "coverage": float(est["covered"].mean()), "n_models": len(est),
                     "divergences": d["divergences"], "max_r_hat": d["max_r_hat"]})
-    for dd, g in est.groupby("drive_days"):
+    for dd, g in est.assign(size=est["drive_days"] // 8).groupby("size"):  # drive-days per quarter
         by_size.setdefault(int(dd), []).extend(g["covered"].tolist())
 cov = [c for s in per_sim for c in [s["coverage"]] * s["n_models"]]
 out = {"n_sims": n_sims, "nominal": 0.9,
