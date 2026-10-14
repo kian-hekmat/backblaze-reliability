@@ -8,14 +8,15 @@ from reliability.early_warning import (baseline_score, drive_day_metrics, drive_
 
 def _frame(n_drives=400, days=60, seed=0):
     rng = np.random.default_rng(seed)
+    dates = pd.date_range("2025-01-01", periods=days)
     rows = []
     for i in range(n_drives):
-        fail_day = rng.integers(10, days) if rng.random() < 0.1 else None
+        fail_day = int(rng.integers(10, days)) if rng.random() < 0.1 else None
         for t in range(days):
             if fail_day is not None and t > fail_day:
                 break
             dtf = None if fail_day is None else fail_day - t
-            rows.append({"serial_number": f"S{i}", "date": pd.Timestamp("2025-01-01") + pd.Timedelta(days=int(t)),
+            rows.append({"serial_number": f"S{i}", "date": dates[t],
                          "days_to_failure": dtf, "fail_7d": int(dtf is not None and dtf <= 6),
                          "label_7d_known": True})
     return pd.DataFrame(rows)
