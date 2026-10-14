@@ -5,7 +5,8 @@
 # MAGIC - types cast; SMART raw values that are non-null but fail to cast are counted (and fail the job)
 # MAGIC - model normalization via `reliability.normalize.normalize_model` (same tested function as locally)
 # MAGIC - dedup on (date, serial_number): prefer failure=1, then most non-null SMART, then lowest source file
-# MAGIC - per-drive capacity = most frequent positive value within the quarter; non-positive -> null
+# MAGIC - per-drive capacity = most frequent positive value within the quarter; a drive with no positive value
+# MAGIC   (e.g. a single first-day row with capacity -1) takes its model's most frequent positive capacity
 # MAGIC - `is_data_drive` = capacity >= 4 TB
 # MAGIC - only the SMART attributes chosen in DECISIONS are kept
 # MAGIC
@@ -110,8 +111,18 @@ drive_cap = (cap_counts.withColumn("_rn", F.row_number().over(wc)).where("_rn = 
              .select("serial_number", F.col("capacity_bytes_raw").alias("capacity_bytes")))
 multi_cap = cap_counts.groupBy("serial_number").count().where("count > 1").count()
 
+# Fallback for drives with no positive capacity in the quarter: the model's most frequent positive capacity
+model_cap_counts = (deduped.join(model_map, "model_raw", "left").where(F.col("capacity_bytes_raw") > 0)
+                    .groupBy("model", "capacity_bytes_raw").count())
+wm = Window.partitionBy("model").orderBy(F.col("count").desc(), F.col("capacity_bytes_raw").desc())
+model_cap = (model_cap_counts.withColumn("_rn", F.row_number().over(wm)).where("_rn = 1")
+             .select("model", F.col("capacity_bytes_raw").alias("model_capacity_bytes")))
+models_multi_cap = model_cap_counts.groupBy("model").count().where("count > 1").count()
+
 silver_q = (deduped.join(model_map, "model_raw", "left")
             .join(drive_cap, "serial_number", "left")
+            .join(model_cap, "model", "left")
+            .withColumn("capacity_bytes", F.coalesce("capacity_bytes", "model_capacity_bytes"))
             .withColumn("is_data_drive", F.coalesce(F.col("capacity_bytes") >= F.lit(DATA_DRIVE_MIN_BYTES), F.lit(False)))
             .withColumn("quarter", F.lit(QUARTER))
             .select("date", "serial_number", "model", "model_short", "manufacturer", "model_raw",
@@ -158,8 +169,11 @@ rows_after_failure = spark.sql(f"""
 multi_model = spark.sql(f"""SELECT count(*) FROM (SELECT serial_number FROM {SILVER}
   WHERE date BETWEEN DATE'{Q_START}' AND DATE'{Q_END}' GROUP BY 1 HAVING count(DISTINCT model) > 1)""").first()[0]
 
+# rows whose drive had no positive capacity in the quarter (filled from the model unless null_capacity says otherwise)
+cap_from_model_rows = deduped.join(drive_cap, "serial_number", "left").where(F.col("capacity_bytes").isNull()).count()
 details = {"bronze_rows": bronze_rows, "duplicate_rows_dropped": dup_dropped, "silver_rows": s["n"],
-           "drives_with_multiple_capacities": multi_cap, "drives_with_multiple_models": multi_model,
+           "drives_with_multiple_capacities": multi_cap, "models_with_multiple_capacities": models_multi_cap,
+           "rows_capacity_from_model": cap_from_model_rows, "drives_with_multiple_models": multi_model,
            "drives_with_rows_after_failure": rows_after_failure, "raw_model_strings": len(raw_models), **s}
 print(json.dumps(details, indent=2, default=str))
 

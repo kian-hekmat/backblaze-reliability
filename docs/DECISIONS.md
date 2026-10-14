@@ -193,3 +193,16 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   roles, resource monitor) hold no data and are left to expire with the trial unless Kian asks to drop them.
 - **Parquet export (`40_export_gold.py`) is kept**, now to feed local modeling (NumPyro, LightGBM) and the
   independent pandas checks.
+
+## 2026-10-14 — Data-quality findings from the first backfilled quarter (Q3 2023)
+
+- **Capacity -1 on a drive's only row in the quarter:** 480 WUH722222ALE6L4 drives appear once in Q3 2023
+  (their first day) with `capacity_bytes = -1`. The per-drive rule (most frequent positive value in the
+  quarter) left them null, which made them non-data drives and dropped that day from features.
+  **Rule 4 extended:** a drive with no positive capacity in the quarter takes its model's most frequent
+  positive capacity. Every model has exactly one capacity in the quarter (`models_with_multiple_capacities = 0`,
+  logged per quarter), so the fill is unambiguous. Q3 2023 after the fix: 0 null capacities;
+  265,065 data drives (was 264,585).
+- **Drives reappearing after a failure row:** 10 in Q3 2023 (0 in Q2 2026). Handled by the existing rule:
+  only a failure on the drive's final observed row counts (Backblaze: "failed until it shows up again").
+  Counted per quarter in silver and in `drive_lifetimes` (`reappeared_after_failure`).
