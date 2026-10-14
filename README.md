@@ -1,127 +1,165 @@
 # Drive Fleet Reliability Pipeline
 
-Reliability analytics on Backblaze's public hard-drive telemetry: daily SMART health readings and
-failure flags for every drive in Backblaze's data centers.
+Which hard-drive models fail most, how risk changes as drives age, how confident we can be when data are sparse,
+and how much warning SMART telemetry gives at an acceptable false-alarm cost. Built on three years of Backblaze's
+public drive telemetry with Databricks (bronze → silver → gold → SQL serving), Bayesian survival methods, and an
+early-warning model evaluated against a simple-rule baseline.
 
-> **Status: in progress.** This README is updated as work completes. Anything not marked done in
-> [Progress](#progress) has not been built or verified yet, and no results are reported until they are
-> produced by code in this repo and saved under `results/`.
+> **Status:** pipeline, analysis, serving layer and documentation are complete and verified. The Tableau Public
+> dashboard is being built from the extracts in [`tableau/`](tableau/) ([build spec](tableau/README.md)); its link
+> will be added here when published.
 
-## Questions
+## 1. Problem
 
-1. **Failure rates and survival (core):** How does failure risk differ across drive models and over a
-   drive's lifetime, and how confident can we be, especially for models with few drives or few failures?
-2. **Early warning (second):** Can SMART telemetry flag a drive before it fails? How many days of warning
-   does it give, and at what false-alarm cost?
+A fleet of the same kind of hardware fails at different rates by model and by age. A reliability team has to decide:
+- which models to trust and which to replace or watch
+- how many spares to budget next year
+- whether telemetry alerts are worth their false-alarm cost
 
-Each result is framed as a reliability decision: which drive models to trust, when to replace drives,
-and how much warning telemetry buys at what alert load.
+Two things make this hard:
+- **Sparse data:** some models have a few thousand drive-days, where one failure swings the raw rate from 0% to
+  over 10%.
+- **Changing risk:** risk changes over a drive's life, so last year's rate can mislead.
 
-## Data
+## 2. Data
 
-- **Source:** [Backblaze Hard Drive Test Data](https://www.backblaze.com/cloud-storage/resources/hard-drive-test-data)
-  (Drive Stats). Data courtesy of Backblaze; used under its terms (cite Backblaze; the data itself is not sold).
-- **Scope:** 12 quarters, Q3 2023 through Q2 2026 (2023-07-01 to 2026-06-30). The exact row, drive, model
-  and failure counts for the full scope will come from `results/scale.json` once the pipeline has
-  processed it. They are not stated here yet.
-- **Processed so far: Q2 2026 only.** 31,968,003 drive-day rows, 359,101 drives (355,142 data drives ≥ 4 TB),
-  80 normalized models, 1,522 failures. Sources: [`results/profiling/Q2_2026/summary.json`](results/profiling/Q2_2026/summary.json)
-  and the pipeline checks. The drive count matches the 359,101 in Backblaze's Q2 2026 report.
+- **Source:** [Backblaze Drive Stats](https://www.backblaze.com/cloud-storage/resources/hard-drive-test-data): daily
+  SMART readings and failure flags for every drive in Backblaze's data centers. Data courtesy of Backblaze, used under
+  its terms (cited; the data itself is not sold).
+- **Exact scope** ([`results/scale.json`](results/scale.json)):
 
-## Architecture
+| | |
+|---|---|
+| Date range | 2023-07-01 to 2026-06-30 (12 quarters, Q3 2023 – Q2 2026) |
+| Rows | 333,732,420 drive-days |
+| Drives | 409,830 (97 models); analyses use data drives ≥ 4 TB: 404,782 drives, 66 models, 329,208,251 drive-days |
+| Failures | 13,255 (13,076 on data drives) |
+
+## 3. Architecture
 
 ```
-Backblaze quarterly ZIPs
-        │  downloaded locally, uploaded unchanged to a Unity Catalog volume
-        ▼
-Databricks (Free Edition, serverless)                 one quarter per run, idempotent, resumable
-  bronze     raw strings + lineage columns            ── keeps the source exactly as published
-  silver     typed, deduplicated, normalized          ── one clean row per (date, drive)
-  gold       drive_lifetimes, model_period_stats,     ── analysis-ready shapes for survival,
-             model_age_stats, drive_day_features         failure rates and early warning
-  analytics  views + SQL on the SQL warehouse         ── serving layer for analysis and Tableau extracts
-        │                          ▲
-        │ Parquet exports          │ results tables (Bayesian rates, survival curves, alert scores)
-        ▼                          │
-Local modeling (NumPyro, lifelines, LightGBM) ── src/reliability, unit-tested
-        │
-        ▼  aggregate CSV extracts (Tableau Public cannot connect live)
-Tableau Public dashboard                              ── fleet reliability, lifetime risk, early warning
+Backblaze quarterly ZIPs ──(scripts/download_data.sh: download, upload unchanged, verify sizes)──┐
+                                                                                                 ▼
+Databricks (Free Edition, serverless) — one quarter per run, idempotent, resumable (ops.quarter_status)
+  bronze     all raw columns as strings + lineage       keeps the source exactly as published, for audit
+  silver     typed, deduplicated, normalized            one clean row per (date, drive); every dropped row explained
+  gold       drive_lifetimes · model_period_stats ·     analysis-ready shapes: survival, failure rates, early warning
+             model_age_stats · drive_day_features
+  analytics  views + 12 analysis queries (SQL)          the serving layer for analysis and dashboard extracts
+       │ Parquet exports                     ▲ results tables (gold.res_*)
+       ▼                                     │
+  Local modeling: NumPyro, LightGBM, survival code in src/reliability (unit-tested)
+       │
+       ▼ aggregate CSV extracts (Tableau Public cannot connect live)
+  Tableau Public dashboard: fleet reliability · lifetime risk · early warning
 ```
 
-One platform serves the data. A separate warehouse (Snowflake) was planned, then dropped: at this size
-it added a copy of the data and a reconciliation step without meeting any need Databricks SQL couldn't
-(see [`docs/DECISIONS.md`](docs/DECISIONS.md), 2026-10-14).
+One platform does both processing and serving. A separate warehouse (Snowflake) was planned and then dropped: at this
+data size it added a copy of the data and a reconciliation loop without meeting any need Databricks SQL couldn't
+([DECISIONS](docs/DECISIONS.md), 2026-10-14).
 
-## Progress
+## 4. Approach
 
-| Phase | Status | Evidence |
-|---|---|---|
-| 0. Setup: repo, Python env, CI, Databricks catalog/schemas/volumes | **Done** | `databricks/00_setup_catalog.py`; pytest CI |
-| 1. Data profiling (Q2 2026) and data-quality rules | **Done** | [`results/profiling/Q2_2026/`](results/profiling/Q2_2026/), [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md), [`docs/DECISIONS.md`](docs/DECISIONS.md) |
-| 2. Vertical slice: Q2 2026 through bronze, silver, gold, analytics views, Tableau extract | **Pipeline verified**; rough Tableau view pending (Kian) | Reconciliation below; [`results/phase2_afr_reconciliation.json`](results/phase2_afr_reconciliation.json), [`results/serving_validation.json`](results/serving_validation.json), [`tableau/extract_model_quarter_afr.csv`](tableau/extract_model_quarter_afr.csv) |
-| 3. Full-scope pipeline (12 quarters) | **Running** | `scripts/run_full_scope.sh` (resumable backfill). Q3 2023 surfaced two new data-quality issues, both handled (DECISIONS 2026-10-14) |
-| 4. Survival and Bayesian failure rates | Code + tests done; awaiting full data | KM/Weibull with delayed entry, hierarchical Bayes with age effect. Synthetic 90%-interval coverage 88.6% over 40 fleets ([`results/phase4/bayes_synthetic_coverage.json`](results/phase4/bayes_synthetic_coverage.json)). External validation on Q2 2026: drive counts and drive-days exact for 31/31 published models; failures exact for 21/31 ([`results/validation/afr_validation_summary.json`](results/validation/afr_validation_summary.json)) |
-| 5. Early-warning prediction | Code + tests done; awaiting full data | Drive + time split, simple-rule baseline, logistic / LightGBM, drive-day and drive-level metrics |
-| 6. Serving layer (Databricks SQL) and analysis queries | Not started | |
-| 7. Tableau Public dashboard | Not started | |
+- **Data quality first.** Every rule (deduplication, model-name normalization, capacity fixes, failure semantics, a
+  SMART power-on-hours counter that wraps at 78,188 hours on four Seagate models) is documented in
+  [DECISIONS](docs/DECISIONS.md), applied in silver/gold, and checked on every quarter.
+- **Survival:**
+  - Drives still running or retired without failing are right-censored.
+  - Drives already old when the window opens enter at their power-on age (left truncation / delayed entry).
+  - Kaplan-Meier curves per model and manufacturer.
+  - Weibull hazard shape per model: decreasing (early-life), constant, or increasing (wear-out).
+- **Bayesian failure rates (NumPyro):**
+  - Poisson failures per model × quarter.
+  - Partial pooling by manufacturer, so sparse models borrow strength from similar models.
+  - A quarter-drift term, because observed rates vary ~3× more than Poisson allows.
+  - Checked against synthetic fleets with known rates, and with an out-of-time test: fit on two years, predict the
+    third.
+- **Early warning:**
+  - Drives are split by serial-number hash and by time: train before 2025-07-01, test after, no drive in both.
+  - Logistic regression and LightGBM on rolling SMART features, trained on down-sampled negatives and evaluated on
+    the full natural test distribution (0.109% positive).
+  - Baseline: "alert when any critical SMART counter (5/187/188/197/198) is nonzero".
 
-**Q2 2026 slice: reconciliation so far** (from the pipeline's checks in `backblaze.ops.quarter_status`):
-- Raw CSV data lines = bronze = silver = 31,968,003 rows (0 duplicate (date, serial) rows; silver key unique).
-- `drive_lifetimes`: 359,101 drives, one row each, drive-days summing to 31,968,003; all 1,522 failed drives
-  have `failed = 1`.
-- `model_period_stats` / `model_age_stats` totals equal silver (31,968,003 drive-days, 1,522 failures).
-- `drive_day_features`: 31,613,498 rows (exactly the data-drive rows). Spark features match the reference
-  implementation on 200 sampled drives with 0 mismatches (the no-future-data check).
-- Serving views in `backblaze.analytics` reconcile with gold (8 checks, all diffs 0).
-- Independent pandas AFR on the raw quarter matches the serving view for all 80 models: drive counts,
-  drive-days and failures exactly, AFR to 1e-9.
-- Drive ages from SMART 9, after correcting a counter wraparound on two Seagate 8 TB models, are within
-  1.5 months of Backblaze's published average age for 30 of 31 models
-  ([`results/validation/age_check_Q2_2026.csv`](results/validation/age_check_Q2_2026.csv)).
+## 5. Results
+
+Full write-up with sources: [`docs/RESULTS.md`](docs/RESULTS.md). Dashboard: *link pending*.
+
+- **Validation:** the pipeline reproduces Backblaze's published Q1 2026 table exactly on all 33 models (drive counts,
+  drive-days, failures). Q2 2026 matches on counts and drive-days; failures differ by +18 (1.2%), traced to
+  Backblaze's manual reclassification ([`afr_validation_summary.json`](results/validation/afr_validation_summary.json)).
+- **Riskiest models:** Seagate ST12000NM0007 **7.15%/yr [90% CI 5.75–8.94]**, ST14000NM0138 5.97%, ST10000NM0086
+  5.54%. That is about 8–13× the most reliable high-volume models (0.57–0.69%)
+  ([`bayes_estimates.csv`](results/phase4/bayes_estimates.csv)).
+- **Why Bayesian:** a model with 1 failure in 2,240 drive-days has a raw AFR of 16.3%; its posterior is 2.9% [0.8–10.6]
+  ([`bayes_vs_raw_disagreement.csv`](results/phase4/bayes_vs_raw_disagreement.csv)).
+- **Forecasting:** past rates predicted the next year's failures within 90% intervals for 79.5% of models. Misses
+  track hazard shape: wear-out models fail more than their trailing rate (Spearman ρ = 0.63)
+  ([`out_of_time_summary.json`](results/phase4/out_of_time_summary.json),
+  [`oot_vs_hazard.json`](results/phase4/oot_vs_hazard.json)).
+- **Hazard shape:** of 26 models with ≥ 30 failures, 11 show wear-out, 11 constant risk, 4 early-life failures
+  ([`weibull_by_model.csv`](results/phase4/weibull_by_model.csv)).
+- **Early warning:**
+  - LightGBM PR-AUC **0.123** vs the simple rule's **0.0067** (30-day horizon).
+  - At 5 alerts per 1,000 drive-days, it alerts **64.6%** of failing drives ≥ 7 days ahead (median 68 days) while
+    flagging ~2.5% of healthy drives per year; the rule flags ~10%.
+  - 181 of the 183 failures the model never alerts on showed no critical SMART signal at all
+    ([`metrics_30d.csv`](results/phase5/metrics_30d.csv), [`undetected_30d.json`](results/phase5/undetected_30d.json)).
+
+**Reliability decisions** ([RESULTS §5](docs/RESULTS.md#5-reliability-decisions)):
+1. Prioritize the high-risk Seagate 10–14 TB models, and budget spares *above* trailing AFR for wear-out models.
+2. Don't rank or retire models on raw AFR from small populations; use the posterior interval.
+3. Run SMART alerting from a model at a chosen alert budget, not the any-nonzero rule, and rely on redundancy for the
+   failures that give no telemetry warning.
+
+## 6. Limitations
+
+Summary (details in [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)):
+- One fleet in one environment: the methods transfer, the rates do not.
+- Failures are operationally defined, and Backblaze's curated tables differ slightly from the daily flags.
+- SMART fields vary by manufacturer (187/188 are effectively Seagate-only), and about a quarter of failing drives show
+  no critical SMART signal.
+- Failure rates are non-stationary, and the Bayesian model has no shared age curve, so next-year forecasts for wear-out
+  models are low estimates.
+- Early-warning metrics come from a single split.
+
+## 7. How to reproduce
+
+Prerequisites: [uv](https://docs.astral.sh/uv/), the Databricks CLI with a configured profile (`DATABRICKS_PROFILE`,
+default `kianhekmatnejad`), ~20 GB local disk. No credentials are stored in this repo.
+
+```bash
+uv sync && uv run pytest                                     # Python env + unit tests (also run in CI)
+bash databricks/run_notebook.sh 00_setup_catalog             # catalog, schemas, volumes, control table
+bash scripts/download_data.sh                                # 12 quarterly ZIPs -> Unity Catalog volume (size-verified)
+bash scripts/run_full_scope.sh                               # bronze -> silver -> gold -> features -> export (resumable)
+uv run python scripts/write_scale.py                         # results/scale.json
+uv run python scripts/pull_exports.py                        # gold exports, verified against the manifest
+uv run python scripts/validate_vs_backblaze.py Q1_2026 Q2_2026
+uv run python scripts/phase4_failure_rates.py                # survival, Weibull, Bayesian, out-of-time
+uv run python scripts/phase4_oot_age_diagnostic.py && uv run python scripts/phase4_oot_vs_hazard.py
+bash databricks/run_notebook.sh 41_export_features           # early-warning train / test sets
+uv run python scripts/pull_exports.py ew_train ew_test
+uv run python scripts/phase5_early_warning.py                # early-warning models and metrics
+uv run python scripts/push_results.py && bash databricks/run_notebook.sh 50_load_results
+uv run python scripts/dbsql.py -f databricks/sql/10_analytics_views.sql
+uv run python scripts/validate_serving.py                    # serving-layer reconciliation
+uv run python scripts/dbsql.py -f databricks/sql/30_analysis_queries.sql
+uv run python scripts/spotcheck_queries.py                   # query outputs vs pandas
+uv run python scripts/dbsql.py -f databricks/sql/40_tableau_extracts.sql -o tableau
+```
+
+For new quarters, the asset bundle runs the per-quarter chain: `databricks bundle deploy && databricks bundle run quarterly_pipeline`.
 
 ## Repository layout
 
 ```
-databricks/        notebooks: 00 setup, 10 bronze, 20 silver, 30–32 gold, 40 export, 50 results load; run_notebook.sh
-databricks/sql/    analytics views, validation, analysis queries, Tableau extracts
-databricks.yml     asset bundle: the quarterly pipeline job
-src/reliability/   pure Python: afr, normalize, age, features, labels, survival, bayes, early_warning
-scripts/           local helpers: profiling, Databricks SQL runner, validation checks
-tests/             pytest unit tests (run in CI on every push)
-results/           saved outputs backing every reported number
-docs/              DECISIONS, DATA_DICTIONARY, LIMITATIONS (RESULTS, TALK_NOTES to come)
+databricks/        notebooks 00 setup · 10 bronze · 20 silver · 30–32 gold · 40/41 exports · 50 results load
+databricks/sql/    analytics views · serving validation · 12 analysis queries · Tableau extracts
+databricks.yml     asset bundle: quarterly pipeline job
+src/reliability/   afr · normalize · age · features · labels · survival · bayes · early_warning (pure, tested)
+scripts/           download, backfill driver, SQL runner, validation, modeling entry points
+tests/             pytest unit tests
+results/           every reported number's source file
+tableau/           aggregate extracts + dashboard build spec
+docs/              DECISIONS · DATA_DICTIONARY · RESULTS · LIMITATIONS · TALK_NOTES
 ```
-
-## Reproducing what exists so far
-
-Prerequisites: [uv](https://docs.astral.sh/uv/) and the Databricks CLI with a configured profile
-(`DATABRICKS_PROFILE`, default `kianhekmatnejad`). No credentials are stored in this repo.
-
-```bash
-uv sync && uv run pytest                                  # environment + unit tests
-bash databricks/run_notebook.sh 00_setup_catalog          # catalog, schemas, volumes, control table
-# upload data_<Qn>_<YYYY>.zip files to /Volumes/backblaze/bronze/raw/zips/ (download script to come)
-bash databricks/run_notebook.sh 10_ingest_bronze '{"quarter":"Q2_2026"}'
-bash databricks/run_notebook.sh 20_bronze_to_silver '{"quarter":"Q2_2026"}'
-bash databricks/run_notebook.sh 30_gold_drive_lifetimes
-bash databricks/run_notebook.sh 31_gold_model_stats
-bash databricks/run_notebook.sh 32_gold_features '{"quarter":"Q2_2026"}'
-bash databricks/run_notebook.sh 40_export_gold
-uv run python scripts/dbsql.py -f databricks/sql/10_analytics_views.sql          # serving views
-uv run python scripts/validate_serving.py                                         # reconciliation
-uv run python scripts/dbsql.py -f databricks/sql/30_analysis_queries.sql         # -> results/sql/
-uv run python scripts/dbsql.py -f databricks/sql/40_tableau_extracts.sql -o tableau
-# or the whole chain for the next unprocessed quarter:
-databricks bundle deploy && databricks bundle run quarterly_pipeline
-```
-
-## Key decisions
-
-See [`docs/DECISIONS.md`](docs/DECISIONS.md). Highlights so far:
-- Failures follow Backblaze's semantics: `failure=1` on a drive's last day. Drives that leave without a
-  failure row, or survive the window, are right-censored, not counted as non-failures.
-- Drive age comes from SMART 9 (power-on hours), with a counter wraparound on ST8000NM0055/ST8000DM002 corrected.
-  Survival by age uses delayed entry, because most drives are already old when the window opens.
-- Analyses use data drives only (≥ 4 TB). Boot drives and SSDs are excluded, as in Backblaze's reports.
-- Databricks-only: Snowflake was dropped as a serving layer (2026-10-14).
