@@ -40,12 +40,12 @@ ok = True
 for t in tables:
     shutil.rmtree(out / t, ignore_errors=True)
     cp(f"{VOL}/{t}", out / t, recursive=True)
-    tbl = ds.dataset(out / t, format="parquet").to_table()
-    got = {"rows": tbl.num_rows}
+    dset = ds.dataset(out / t, format="parquet")
+    got = {"rows": dset.count_rows()}
     for col, key in [("drive_days", "sum_drive_days"), ("failures", "sum_failures"),
                      ("failed", "sum_failed"), ("n_obs_days", "sum_n_obs_days")]:
-        if col in tbl.column_names:
-            got[key] = int(pc.sum(tbl[col]).as_py())
+        if col in dset.schema.names:
+            got[key] = int(pc.sum(dset.to_table(columns=[col])[col]).as_py())
     exp = manifest[t]
     match = all(got.get(k) == v for k, v in exp.items())
     ok &= match
