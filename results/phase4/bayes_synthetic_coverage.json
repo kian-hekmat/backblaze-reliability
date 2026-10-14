@@ -1,0 +1,295 @@
+{
+  "n_sims": 40,
+  "nominal": 0.9,
+  "overall_coverage": 0.885576923076923,
+  "coverage_by_model_drive_days": {
+    "1998": 0.8654545454545455,
+    "19998": 0.8812260536398467,
+    "300000": 0.9242424242424242,
+    "1999998": 0.8708333333333333
+  },
+  "sims_with_divergences": 3,
+  "max_r_hat_over_sims": 1.06900954246521,
+  "per_sim": [
+    {
+      "seed": 1000,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.02962327003479
+    },
+    {
+      "seed": 1001,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0346137285232544
+    },
+    {
+      "seed": 1002,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0345767736434937
+    },
+    {
+      "seed": 1003,
+      "coverage": 0.6923076923076923,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0086432695388794
+    },
+    {
+      "seed": 1004,
+      "coverage": 0.8461538461538461,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0084818601608276
+    },
+    {
+      "seed": 1005,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0083478689193726
+    },
+    {
+      "seed": 1006,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0071783065795898
+    },
+    {
+      "seed": 1007,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.018904209136963
+    },
+    {
+      "seed": 1008,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0173336267471313
+    },
+    {
+      "seed": 1009,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0092471837997437
+    },
+    {
+      "seed": 1010,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0244606733322144
+    },
+    {
+      "seed": 1011,
+      "coverage": 1.0,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.016420602798462
+    },
+    {
+      "seed": 1012,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0285042524337769
+    },
+    {
+      "seed": 1013,
+      "coverage": 0.8461538461538461,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.005964756011963
+    },
+    {
+      "seed": 1014,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0020989179611206
+    },
+    {
+      "seed": 1015,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0076227188110352
+    },
+    {
+      "seed": 1016,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 3,
+      "max_r_hat": 1.0108429193496704
+    },
+    {
+      "seed": 1017,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0157370567321777
+    },
+    {
+      "seed": 1018,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.034376621246338
+    },
+    {
+      "seed": 1019,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0097616910934448
+    },
+    {
+      "seed": 1020,
+      "coverage": 0.8461538461538461,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.010757327079773
+    },
+    {
+      "seed": 1021,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0222247838974
+    },
+    {
+      "seed": 1022,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0158904790878296
+    },
+    {
+      "seed": 1023,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.06900954246521
+    },
+    {
+      "seed": 1024,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.004293441772461
+    },
+    {
+      "seed": 1025,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.007648229598999
+    },
+    {
+      "seed": 1026,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0178167819976807
+    },
+    {
+      "seed": 1027,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.025355339050293
+    },
+    {
+      "seed": 1028,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0073643922805786
+    },
+    {
+      "seed": 1029,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 1,
+      "max_r_hat": 1.0151830911636353
+    },
+    {
+      "seed": 1030,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0129717588424683
+    },
+    {
+      "seed": 1031,
+      "coverage": 0.7692307692307693,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.008753776550293
+    },
+    {
+      "seed": 1032,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.016050100326538
+    },
+    {
+      "seed": 1033,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0176044702529907
+    },
+    {
+      "seed": 1034,
+      "coverage": 0.8461538461538461,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.011306881904602
+    },
+    {
+      "seed": 1035,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.003443717956543
+    },
+    {
+      "seed": 1036,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0222851037979126
+    },
+    {
+      "seed": 1037,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.028256893157959
+    },
+    {
+      "seed": 1038,
+      "coverage": 0.7692307692307693,
+      "n_models": 26,
+      "divergences": 1,
+      "max_r_hat": 1.0053942203521729
+    },
+    {
+      "seed": 1039,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0103216171264648
+    }
+  ]
+}
