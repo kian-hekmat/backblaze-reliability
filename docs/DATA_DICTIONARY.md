@@ -262,10 +262,10 @@ quarter's schema are null), plus:
 | `censored` | INT | `1 - failed` (right-censored) |
 | `event` | STRING | `failed`, `censored_window_end` (running on the last window day), `censored_left_fleet` |
 | `left_truncated` | INT | 1 if first seen on the window's first day (already in service before the window) |
-| `poh_first`, `poh_last` | BIGINT | Wraparound-corrected SMART 9 power-on hours at first / last observation |
-| `entry_age_days` | DOUBLE | `poh_first / 24`: age when observation starts (delayed-entry time for survival) |
+| `poh_first`, `poh_last` | BIGINT | Wraparound-corrected SMART 9 power-on hours at the first / last day with a non-null reading (wrap detected via SMART 240; `reliability.age`) |
+| `entry_age_days` | DOUBLE | Age on `first_date`: `poh_first / 24` back-dated by the days between `first_date` and the first non-null reading (delayed-entry time for survival) |
 | `exit_age_days` | DOUBLE | `entry_age_days + observed_days`: age at failure or censoring |
-| `age_ok` | INT | 1 if SMART 9 is present, ≤ 15 years, and non-decreasing; ages are null in analyses otherwise |
+| `age_ok` | INT | 1 if a SMART 9 reading exists, entry age is ≥ 0 and ≤ 15 years, and readings are non-decreasing; ages are null in analyses otherwise |
 | `n_failure_rows`, `reappeared_after_failure` | INT | Failure-semantics audit (0 reappearances so far) |
 | `n_models`, `n_capacities` | INT | Distinct values seen for the drive (audit) |
 | `window_start`, `window_end` | DATE | Data window used for this build |
@@ -278,7 +278,8 @@ quarter's schema are null), plus:
 | `quarter` | STRING | e.g. `Q2_2026` |
 | `drive_count` | BIGINT | Distinct drives observed in the quarter |
 | `drive_days` | BIGINT | Drive-day rows in the quarter |
-| `failures` | BIGINT | Failure rows in the quarter |
+| `failures` | BIGINT | Counted failures in the quarter: a drive's final-row failure, same rule as `drive_lifetimes.failed` |
+| `failure_flags` | BIGINT | Raw `failure = 1` rows in the quarter (higher than `failures` only for drives that reappeared after a flag) |
 | `mean_age_days` | DOUBLE | Mean drive-day age (drives with `age_ok`) |
 | `period_start`, `period_end` | DATE | First / last date observed for the model in the quarter |
 | `afr_pct` | DOUBLE | `failures / (drive_days / 365) * 100` |
@@ -286,7 +287,7 @@ quarter's schema are null), plus:
 ### `backblaze.gold.model_age_stats` — one row per model per quarter per age year
 
 Same model attributes and `quarter`, plus `age_year` (floor of age in years at that drive-day; −1 when
-`age_ok = 0`), `drive_count`, `drive_days`, `failures`. Input to the age-aware Bayesian model.
+`age_ok = 0`), `drive_count`, `drive_days`, `failures`, `failure_flags`. Input to the age-aware Bayesian model.
 
 ### `backblaze.gold.drive_day_features` — one row per data drive per day (partitioned by `quarter`)
 
