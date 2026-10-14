@@ -5,33 +5,61 @@ age by failing (event=1) or being censored (event=0). A drive is in the risk set
 entry < t <= exit. Ignoring entry (treating every drive as observed from age 0) biases survival upward,
 because drives that failed before the window are invisible.
 
-Kaplan-Meier and Weibull fits use lifelines, which supports delayed entry. Times are in years.
+Kaplan-Meier is implemented here (product-limit with a minimum-risk-set start, which lifelines lacks);
+the Weibull fit uses lifelines, which supports delayed entry. Times are in years.
 """
 
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from lifelines import KaplanMeierFitter, WeibullFitter
+from lifelines import WeibullFitter
 
 
-def km_curve(entry, exit, event, grid=None, label="km") -> pd.DataFrame:
-    """Kaplan-Meier survival S(t) with delayed entry.
+def km_curve(entry, exit, event, grid=None, min_at_risk: int = 1, label="km") -> pd.DataFrame:
+    """Kaplan-Meier survival with delayed entry (product-limit; Greenwood variance, log-log 95% CI).
 
-    S(t) is conditional on surviving to the smallest entry age; with drives entering near age 0 it estimates
-    unconditional survival. Returns columns: age, survival, ci_lower, ci_upper, at_risk.
+    With delayed entry, the risk set at young ages can be tiny (few drives observed new), and one early
+    failure among 1-2 drives would send S(t) to ~0 for every later age. The curve therefore starts at
+    `start_age`, the first event age where at least `min_at_risk` drives are at risk, and is reported as
+    survival *conditional on reaching start_age*. Ages below start_age get NaN.
+
+    Returns columns: age, survival, ci_lower, ci_upper, at_risk, start_age.
     """
     entry, exit, event = (np.asarray(x, dtype=float) for x in (entry, exit, event))
-    kmf = KaplanMeierFitter(label=label)
-    kmf.fit(exit, event_observed=event, entry=entry)
+    entry_sorted, exit_sorted = np.sort(entry), np.sort(exit)
+
+    def at_risk(t):  # drives with entry < t <= exit
+        t = np.asarray(t, dtype=float)
+        return np.searchsorted(entry_sorted, t, side="left") - np.searchsorted(exit_sorted, t, side="left")
+
+    times, d = np.unique(exit[event == 1], return_counts=True)
+    n = at_risk(times)
+    ok = n >= min_at_risk
+    start = times[ok][0] if ok.any() else np.inf
+    keep = times >= start
+    times, d, n = times[keep], d[keep], n[keep]
+    surv = np.cumprod(1 - d / n)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        green = np.cumsum(d / (n * (n - d)))
+        # log-log CI: S^exp(+-z*se), se = sqrt(green) / |log S|
+        se = np.sqrt(green) / np.abs(np.log(surv))
+        lo = surv ** np.exp(1.96 * se)
+        hi = surv ** np.exp(-1.96 * se)
+    lo = np.where(surv >= 1, 1.0, np.where(surv <= 0, 0.0, lo))
+    hi = np.where(surv >= 1, 1.0, np.where(surv <= 0, 0.0, hi))
+
     if grid is None:
         grid = np.linspace(0, exit.max(), 101)
-    sf = kmf.survival_function_at_times(grid).to_numpy()
-    ci = kmf.confidence_interval_survival_function_
-    lo = np.interp(grid, ci.index.to_numpy(), ci.iloc[:, 0].to_numpy())
-    hi = np.interp(grid, ci.index.to_numpy(), ci.iloc[:, 1].to_numpy())
-    at_risk = np.array([np.sum((entry < t) & (exit >= t)) for t in grid])
-    return pd.DataFrame({"age": grid, "survival": sf, "ci_lower": lo, "ci_upper": hi, "at_risk": at_risk})
+    grid = np.asarray(grid, dtype=float)
+    idx = np.searchsorted(times, grid, side="right") - 1      # last event time <= age
+    s_g = np.where(idx >= 0, surv[np.clip(idx, 0, None)] if len(surv) else 1.0, 1.0)
+    lo_g = np.where(idx >= 0, lo[np.clip(idx, 0, None)] if len(lo) else 1.0, 1.0)
+    hi_g = np.where(idx >= 0, hi[np.clip(idx, 0, None)] if len(hi) else 1.0, 1.0)
+    before = grid < start if np.isfinite(start) and min_at_risk > 1 else np.zeros(len(grid), bool)
+    s_g, lo_g, hi_g = (np.where(before, np.nan, x) for x in (s_g, lo_g, hi_g))
+    return pd.DataFrame({"age": grid, "survival": s_g, "ci_lower": lo_g, "ci_upper": hi_g,
+                         "at_risk": at_risk(grid), "start_age": start if np.isfinite(start) else np.nan})
 
 
 @dataclass

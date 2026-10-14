@@ -64,3 +64,27 @@ def test_weibull_recovers_shape_with_truncation_and_censoring(k, expected):
 
 def test_weibull_hazard_constant_when_shape_one():
     np.testing.assert_allclose(weibull_hazard([1, 5, 9], 1.0, 4.0), [0.25, 0.25, 0.25])
+
+
+def test_km_matches_lifelines_without_min_risk_set():
+    from lifelines import KaplanMeierFitter
+    entry, exit, event = simulate(n=3000, seed=4)
+    grid = np.array([0.5, 2.0, 4.0, 7.0])
+    ours = km_curve(entry, exit, event, grid=grid)
+    ref = KaplanMeierFitter().fit(exit, event, entry=entry)
+    np.testing.assert_allclose(ours["survival"], ref.survival_function_at_times(grid).to_numpy(), atol=1e-12)
+
+
+def test_km_min_risk_set_avoids_collapse_from_tiny_early_risk_set():
+    # one drive observed from age 0.1 fails at 0.2 while alone in the risk set; 1000 others enter at age 3
+    rng = np.random.default_rng(5)
+    entry = np.r_[0.1, np.full(1000, 3.0)]
+    life = 3.0 + rng.exponential(20.0, 1000)
+    exit = np.r_[0.2, np.minimum(life, 6.0)]
+    event = np.r_[1, (life <= 6.0).astype(int)]
+    naive = km_curve(entry, exit, event, grid=np.array([5.0]))
+    assert naive["survival"].iloc[0] == 0.0                     # collapsed by the 1-drive risk set
+    guarded = km_curve(entry, exit, event, grid=np.array([2.0, 5.0]), min_at_risk=50)
+    assert np.isnan(guarded["survival"].iloc[0])                 # before start_age
+    assert guarded["start_age"].iloc[0] >= 3.0
+    assert 0.85 < guarded["survival"].iloc[1] < 0.95             # ~exp(-2/20) conditional on reaching 3
