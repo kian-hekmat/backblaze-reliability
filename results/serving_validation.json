@@ -1,0 +1,54 @@
+{
+  "validated_at": "2026-10-14T14:44:36.087781+00:00",
+  "all_pass": true,
+  "checks": [
+    {
+      "query": "validate_views",
+      "check": "model_quarter_afr drive_days vs gold (data drives)",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "model_quarter_afr failures vs gold",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "model_window_afr drive_days vs drive_lifetimes",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "model_window_afr failures vs drive_lifetimes",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "model_window_afr drives vs drive_lifetimes",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "age_year_afr + unknown-age drive_days vs gold",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "fleet_composition drive_days vs gold",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "failed_drive_warning rows vs failed data drives",
+      "diff": 0.0,
+      "pass": true
+    }
+  ]
+}
