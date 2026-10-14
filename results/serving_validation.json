@@ -1,5 +1,5 @@
 {
-  "validated_at": "2026-10-14T21:08:05.238154+00:00",
+  "validated_at": "2026-10-14T22:29:24.810594+00:00",
   "all_pass": true,
   "checks": [
     {
@@ -47,6 +47,36 @@
     {
       "query": "validate_views",
       "check": "failed_drive_warning rows vs failed data drives",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "model_risk rows vs Bayesian estimates",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "Bayesian estimates drive_days vs gold (known-age data drives)",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "Bayesian estimates failures vs gold (known-age data drives)",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "ew_daily_alerts rows vs scores table",
+      "diff": 0.0,
+      "pass": true
+    },
+    {
+      "query": "validate_views",
+      "check": "lead-time table failed drives vs scored failed test drives",
       "diff": 0.0,
       "pass": true
     }

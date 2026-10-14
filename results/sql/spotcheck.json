@@ -1,0 +1,167 @@
+{
+  "queries_checked": [
+    "q01",
+    "q02",
+    "q03",
+    "q04",
+    "q05",
+    "q06",
+    "q07",
+    "q08",
+    "q09",
+    "q10",
+    "q11",
+    "q12"
+  ],
+  "n_queries": 12,
+  "all_match": true,
+  "checks": [
+    {
+      "query": "q01",
+      "check": "rows (model-quarters passing Backblaze rule)",
+      "sql": 363.0,
+      "pandas": 363.0,
+      "match": true
+    },
+    {
+      "query": "q01",
+      "check": "total failures",
+      "sql": 13022.0,
+      "pandas": 13022.0,
+      "match": true
+    },
+    {
+      "query": "q02",
+      "check": "rows",
+      "sql": 25.0,
+      "pandas": 25.0,
+      "match": true
+    },
+    {
+      "query": "q02",
+      "check": "total drive_days",
+      "sql": 329208251.0,
+      "pandas": 329208251.0,
+      "match": true
+    },
+    {
+      "query": "q03",
+      "check": "rows",
+      "sql": 35.0,
+      "pandas": 35.0,
+      "match": true
+    },
+    {
+      "query": "q03",
+      "check": "total failures",
+      "sql": 13066.0,
+      "pandas": 13066.0,
+      "match": true
+    },
+    {
+      "query": "q04",
+      "check": "failed data drives (all manufacturers)",
+      "sql": 13076.0,
+      "pandas": 13076.0,
+      "match": true
+    },
+    {
+      "query": "q05",
+      "check": "total drive_days",
+      "sql": 329208251.0,
+      "pandas": 329208251.0,
+      "match": true
+    },
+    {
+      "query": "q05",
+      "check": "total failures",
+      "sql": 13076.0,
+      "pandas": 13076.0,
+      "match": true
+    },
+    {
+      "query": "q06",
+      "check": "rows",
+      "sql": 66.0,
+      "pandas": 66.0,
+      "match": true
+    },
+    {
+      "query": "q06",
+      "check": "max posterior median AFR (2 dp)",
+      "sql": 7.15,
+      "pandas": 7.15,
+      "match": true
+    },
+    {
+      "query": "q07",
+      "check": "same top-15 models",
+      "sql": 15.0,
+      "pandas": 15.0,
+      "match": true
+    },
+    {
+      "query": "q08",
+      "check": "wear-out (increasing) models",
+      "sql": 11.0,
+      "pandas": 11.0,
+      "match": true
+    },
+    {
+      "query": "q09",
+      "check": "LightGBM 5/1000 alert drive-days",
+      "sql": 167439.0,
+      "pandas": 167439.0,
+      "match": true
+    },
+    {
+      "query": "q09",
+      "check": "rule alert drive-days",
+      "sql": 2690543.0,
+      "pandas": 2690543.0,
+      "match": true
+    },
+    {
+      "query": "q10",
+      "check": "failed test drives",
+      "sql": 1459.0,
+      "pandas": 1459.0,
+      "match": true
+    },
+    {
+      "query": "q10",
+      "check": "alerted failed drives",
+      "sql": 1035.0,
+      "pandas": 1035.0,
+      "match": true
+    },
+    {
+      "query": "q10",
+      "check": "alerted >= 7 days ahead",
+      "sql": 942.0,
+      "pandas": 942.0,
+      "match": true
+    },
+    {
+      "query": "q11",
+      "check": "actual failures (test year)",
+      "sql": 4689.0,
+      "pandas": 4689.0,
+      "match": true
+    },
+    {
+      "query": "q11",
+      "check": "models covered",
+      "sql": 35.0,
+      "pandas": 35.0,
+      "match": true
+    },
+    {
+      "query": "q12",
+      "check": "max |fleet AFR difference| across 12 quarters",
+      "sql": 0.0,
+      "pandas": 0.0,
+      "match": true
+    }
+  ]
+}

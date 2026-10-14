@@ -1,0 +1,5 @@
+manufacturer,failed_drives,alerted,alerted_7d_plus,alerted_30d_plus,median_lead_days
+HGST,273,240,227,183,110.0
+Seagate,574,432,388,283,61.0
+Toshiba,440,253,223,163,52.0
+WDC,172,110,104,84,64.0

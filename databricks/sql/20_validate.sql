@@ -35,4 +35,22 @@ SELECT 'fleet_composition drive_days vs gold',
 UNION ALL
 SELECT 'failed_drive_warning rows vs failed data drives',
        (SELECT COUNT(*) FROM backblaze.analytics.failed_drive_warning)
-     - (SELECT SUM(failed) FROM backblaze.gold.drive_lifetimes WHERE is_data_drive);
+     - (SELECT SUM(failed) FROM backblaze.gold.drive_lifetimes WHERE is_data_drive)
+UNION ALL
+SELECT 'model_risk rows vs Bayesian estimates',
+       (SELECT COUNT(*) FROM backblaze.analytics.model_risk) - (SELECT COUNT(*) FROM backblaze.gold.res_bayes_estimates)
+UNION ALL
+SELECT 'Bayesian estimates drive_days vs gold (known-age data drives)',
+       (SELECT SUM(drive_days) FROM backblaze.gold.res_bayes_estimates)
+     - (SELECT SUM(drive_days) FROM backblaze.gold.model_age_stats WHERE is_data_drive AND age_year >= 0)
+UNION ALL
+SELECT 'Bayesian estimates failures vs gold (known-age data drives)',
+       (SELECT SUM(failures) FROM backblaze.gold.res_bayes_estimates)
+     - (SELECT SUM(failures) FROM backblaze.gold.model_age_stats WHERE is_data_drive AND age_year >= 0)
+UNION ALL
+SELECT 'ew_daily_alerts rows vs scores table',
+       (SELECT COUNT(*) FROM backblaze.analytics.ew_daily_alerts) - (SELECT COUNT(*) FROM backblaze.gold.res_ew_test_scores_30d)
+UNION ALL
+SELECT 'lead-time table failed drives vs scored failed test drives',
+       (SELECT COUNT(*) FROM backblaze.gold.res_ew_lead_times_30d)
+     - (SELECT COUNT(DISTINCT serial_number) FROM backblaze.gold.res_ew_test_scores_30d WHERE days_to_failure IS NOT NULL);

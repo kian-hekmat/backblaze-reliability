@@ -17,11 +17,12 @@ PROFILE = os.environ.get("DATABRICKS_PROFILE", "kianhekmatnejad")
 VOL = "dbfs:/Volumes/backblaze/gold/results"
 RESULTS = {
     "bayes_estimates": "results/phase4/bayes_estimates.csv",
-    "bayes_age_effect": "results/phase4/bayes_age_effect.csv",
     "km_by_model": "results/phase4/km_by_model.csv",
     "km_by_manufacturer": "results/phase4/km_by_manufacturer.csv",
     "weibull_by_model": "results/phase4/weibull_by_model.csv",
-    "out_of_time_predictions": "results/phase4/out_of_time_predictions.csv",
+    "out_of_time_predictions": "results/phase4/out_of_time_predictions_main_overdispersed_no_age.csv",
+    "oot_vs_hazard": "results/phase4/oot_vs_hazard.csv",
+    "afr_baseline_quarter": "results/phase4/afr_baseline_quarter.csv",
     "ew_metrics_30d": "results/phase5/metrics_30d.csv",
     "ew_metrics_by_manufacturer_30d": "results/phase5/metrics_by_manufacturer_30d.csv",
     "ew_tradeoff_30d": "results/phase5/tradeoff_30d.csv",

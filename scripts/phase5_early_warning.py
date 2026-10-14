@@ -171,6 +171,7 @@ for h in (30, 7):
         sc["score_lightgbm"] = scores["lightgbm"].astype("float32")
         sc["rule_alert"] = scores["simple_rule"].astype("int8")
         sc["lightgbm_alert_at_rule_budget"] = (scores["lightgbm"] >= threshold_for_budget(scores["lightgbm"], rule_rate)).astype("int8")
+        sc["date"] = sc["date"].dt.date  # day-level; Spark cannot read pandas nanosecond timestamps
         sc.to_parquet(ROOT / "data/results/ew_test_scores_30d.parquet", index=False)
 
     imp = pd.DataFrame({"feature": FEATURES, "gain": gbm.booster_.feature_importance("gain")})
