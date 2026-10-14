@@ -60,9 +60,9 @@ it added a copy of the data and a reconciliation step without meeting any need D
 | 0. Setup: repo, Python env, CI, Databricks catalog/schemas/volumes | **Done** | `databricks/00_setup_catalog.py`; pytest CI |
 | 1. Data profiling (Q2 2026) and data-quality rules | **Done** | [`results/profiling/Q2_2026/`](results/profiling/Q2_2026/), [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md), [`docs/DECISIONS.md`](docs/DECISIONS.md) |
 | 2. Vertical slice: Q2 2026 through bronze, silver, gold, analytics views, Tableau extract | **Pipeline verified**; rough Tableau view pending (Kian) | Reconciliation below; [`results/phase2_afr_reconciliation.json`](results/phase2_afr_reconciliation.json), [`results/serving_validation.json`](results/serving_validation.json), [`tableau/extract_model_quarter_afr.csv`](tableau/extract_model_quarter_afr.csv) |
-| 3. Full-scope pipeline (12 quarters) | Not started | All 12 raw ZIPs uploaded and size-verified |
-| 4. Survival and Bayesian failure rates | Not started | |
-| 5. Early-warning prediction | Not started | |
+| 3. Full-scope pipeline (12 quarters) | **Running** | `scripts/run_full_scope.sh` (resumable backfill). Q3 2023 surfaced two new data-quality issues, both handled (DECISIONS 2026-10-14) |
+| 4. Survival and Bayesian failure rates | Code + tests done; awaiting full data | KM/Weibull with delayed entry, hierarchical Bayes with age effect. Synthetic 90%-interval coverage 88.6% over 40 fleets ([`results/phase4/bayes_synthetic_coverage.json`](results/phase4/bayes_synthetic_coverage.json)). External validation on Q2 2026: drive counts and drive-days exact for 31/31 published models; failures exact for 21/31 ([`results/validation/afr_validation_summary.json`](results/validation/afr_validation_summary.json)) |
+| 5. Early-warning prediction | Code + tests done; awaiting full data | Drive + time split, simple-rule baseline, logistic / LightGBM, drive-day and drive-level metrics |
 | 6. Serving layer (Databricks SQL) and analysis queries | Not started | |
 | 7. Tableau Public dashboard | Not started | |
 
@@ -86,7 +86,7 @@ it added a copy of the data and a reconciliation step without meeting any need D
 databricks/        notebooks: 00 setup, 10 bronze, 20 silver, 30–32 gold, 40 export, 50 results load; run_notebook.sh
 databricks/sql/    analytics views, validation, analysis queries, Tableau extracts
 databricks.yml     asset bundle: the quarterly pipeline job
-src/reliability/   pure Python: afr, normalize, age, features, labels (survival, bayes, early_warning to come)
+src/reliability/   pure Python: afr, normalize, age, features, labels, survival, bayes, early_warning
 scripts/           local helpers: profiling, Databricks SQL runner, validation checks
 tests/             pytest unit tests (run in CI on every push)
 results/           saved outputs backing every reported number
