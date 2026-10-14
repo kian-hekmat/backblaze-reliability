@@ -18,9 +18,8 @@ CLAUDE.md Section 3 are not repeated here unless they needed a concrete value.
 ## 2026-10-13 — Snowflake environment
 
 - **Account:** the existing `learning` Snowflake CLI connection (account VN04570, AWS us-east-2), confirmed by Kian.
-- **Trial end date: 2026-10-22 (inferred, not confirmed).** The account's first login was
-  2026-09-22 (`snowflake.account_usage.login_history`); a standard trial lasts 30 days. Kian to
-  confirm from the Snowsight banner.
+- **Trial end date: 2026-10-27** (confirmed by Kian on 2026-10-13 as "ends in 14 days").
+  An earlier inference of 2026-10-22, based on first login 2026-09-22 + 30 days, was wrong.
 - **Resource monitor:** `BACKBLAZE_MONITOR`, 20 credits total (approved by Kian), notify at 50/75/90%,
   suspend at 100%, suspend immediately at 110%. Attached to `LOAD_WH` and `BI_WH`.
 - **Secondary roles:** this user's `DEFAULT_SECONDARY_ROLES` is `ALL`, so ACCOUNTADMIN privileges leak
@@ -114,3 +113,40 @@ Every rule is applied in silver, and every quarter logs the count of rows or dri
 - `scripts/`: local helper scripts (profiling, dictionary generation) that write to `results/`.
 - `databricks/run_notebook.sh`: syncs notebooks to the workspace and runs one as a serverless one-time job.
 - `snowflake/01_verify_roles.sh`: Phase 0 role verification (statements that must fail can't share one SQL file).
+
+## 2026-10-13 — Repository visibility
+
+- The GitHub repo `kian-hekmat/backblaze-reliability` is **private** (Kian). `CLAUDE.md` and
+  `docs/TALK_NOTES.md` contain interview-specific context. Before the repo is made public, remove them
+  from the working tree **and from git history**; they have been committed since the first commit.
+
+## 2026-10-13 — Plan changes approved by Kian (deviations from CLAUDE.md)
+
+Kian approved these on 2026-10-13. They take precedence over the corresponding CLAUDE.md text.
+
+1. **Age with left truncation.** `drive_lifetimes` adds age from SMART 9 (power-on hours) at first and
+   last observation. Kaplan-Meier and Weibull fits by age use delayed entry, because most drives are
+   already old when the window opens. Observed in-window duration is kept as a separate column.
+2. **Age-aware Bayesian model.** Failures per model × age bucket ~ Poisson(rate × drive-years). The model
+   has a shared age effect and partial pooling of model rates by manufacturer, with a weakly informative
+   prior at the manufacturer level (only ~4 groups). Raw AFR and age-adjusted posterior rates are reported
+   side by side.
+3. **Boundary-safe labels.** When quarter q+1 is processed, the labels for the last 30 days of quarter q
+   are recomputed. Rows in the final 30 days of the window (or 7 days, for the 7-day label) have unknown
+   labels, are flagged, and are excluded from training and evaluation.
+4. **External validation criterion.** Exact match of drive counts and drive-days per model; failure-count
+   differences must be listed and explained (Backblaze reclassifies some failures after publishing). Add a
+   sensitivity check on the known cosmetic-failure episode (MG08ACA16TEY, Q3 2025).
+5. **Snowflake timeline.** Gold tables load as soon as full scope is built; results tables load as
+   produced; all Tableau extracts are exported to `tableau/` by ~2026-10-24, before the trial ends.
+6. **Feature table scope.** `drive_day_features` covers data drives only. Snowflake receives all gold and
+   results tables in full except daily features, which are reduced to failed drives' histories plus
+   alerted and scored drive-days.
+7. **Per-manufacturer reporting** of early-warning metrics, because SMART 187/188 are effectively
+   Seagate-only.
+8. **Drive-level early-warning metrics** in addition to drive-day metrics: fraction of failed drives
+   alerted at least N days ahead; false-alarmed healthy drives per 1,000 drives per year.
+9. **Databricks Asset Bundle** (`databricks.yml`) defines the job instead of loose JSON in `databricks/jobs/`.
+10. **GitHub Actions** runs pytest on every push.
+11. **Human-only steps** (Kian): building and publishing the Tableau Public dashboard from the prepared
+    extracts and build spec, and the viewer test.
