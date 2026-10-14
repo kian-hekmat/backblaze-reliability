@@ -206,3 +206,13 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
 - **Drives reappearing after a failure row:** 10 in Q3 2023 (0 in Q2 2026). Handled by the existing rule:
   only a failure on the drive's final observed row counts (Backblaze: "failed until it shows up again").
   Counted per quarter in silver and in `drive_lifetimes` (`reappeared_after_failure`).
+
+## 2026-10-14 — Backfill audit across all 12 quarters (silver, `backblaze.ops.quarter_status`)
+
+- Duplicate (date, serial) rows: 0 in every quarter. Null capacity after the model fallback: 0 in every quarter.
+- Drives reappearing after a failure row: 10, 17, 23, 47, 32, 41 in Q3 2023 – Q4 2024, then **0 in every
+  quarter from Q1 2025**. This looks like a change in how Backblaze produces the files (failure flags
+  reconciled before publication). The final-row rule handles both regimes; LIMITATIONS notes that failure
+  semantics are not perfectly uniform across the window.
+- Capacity inconsistencies: one ST4000DM000 drive reported 137,438,952,960 bytes on 2 of its days in Q3 2024
+  (a bad reading); the per-drive most-frequent rule assigns it 4 TB. Two rows in Q3 2024 used the model fallback.
