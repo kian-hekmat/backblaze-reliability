@@ -9,12 +9,15 @@
 # MAGIC - Age (DECISIONS, approved change 1): `entry_age_days` = SMART 9 power-on hours at first observation / 24;
 # MAGIC   `exit_age_days` = entry age + calendar days from first to last observation. Survival by age uses
 # MAGIC   delayed entry at `entry_age_days` (left truncation). `age_ok` flags plausible SMART 9 values.
+# MAGIC   SMART 9 is wraparound-corrected first (`reliability.age`; checked against Backblaze's published ages).
 # MAGIC
 # MAGIC Checks: serial unique; every serial whose final silver row is a failure has failed = 1; counts match silver.
 
 # COMMAND ----------
 
 import json
+import os
+import sys
 from datetime import datetime, timezone
 
 from pyspark.sql import Window
@@ -22,6 +25,10 @@ from pyspark.sql import functions as F
 
 dbutils.widgets.text("catalog", "backblaze")
 CATALOG = dbutils.widgets.get("catalog")
+_nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+sys.path.insert(0, "/Workspace" + os.path.dirname(os.path.dirname(_nb)) + "/src")
+from reliability.age import (WRAP_DETECT_AFTER_MAX, WRAP_DETECT_BEFORE_MIN, WRAP_MODELS,  # noqa: E402
+                             corrected_poh_sql)
 SILVER = f"{CATALOG}.silver.drive_stats"
 TABLE = f"{CATALOG}.gold.drive_lifetimes"
 MAX_PLAUSIBLE_AGE_DAYS = 15 * 365  # SMART 9 above 15 years is treated as a bad reading
@@ -30,12 +37,25 @@ s = spark.table(SILVER)
 win_start, win_end = s.agg(F.min("date"), F.max("date")).first()
 print("window:", win_start, win_end)
 
+# SMART 9 wraparound guard (data drives; SSDs wrap at 65,535 and are not analysed): fail if a model not in WRAP_MODELS shows the wrap signature
+# (day-over-day drop from >= WRAP_DETECT_BEFORE_MIN hours to <= WRAP_DETECT_AFTER_MAX hours).
+w_prev = Window.partitionBy("serial_number").orderBy("date")
+wraps = (s.where("is_data_drive").select("serial_number", "model_short", "date", "smart_9_raw")
+         .withColumn("prev", F.lag("smart_9_raw").over(w_prev))
+         .where((F.col("prev") >= WRAP_DETECT_BEFORE_MIN) & (F.col("smart_9_raw") <= WRAP_DETECT_AFTER_MAX))
+         .groupBy("model_short").agg(F.countDistinct("serial_number").alias("drives")).collect())
+wrap_by_model = {r.model_short: r.drives for r in wraps}
+unknown_wraps = {m: n for m, n in wrap_by_model.items() if m not in WRAP_MODELS}
+print("SMART 9 wraps by model:", wrap_by_model)
+assert not unknown_wraps, f"SMART 9 wraparound in models not handled by reliability.age: {unknown_wraps}"
+
 # COMMAND ----------
 
 w_first = Window.partitionBy("serial_number").orderBy("date")
 w_last = Window.partitionBy("serial_number").orderBy(F.col("date").desc())
 ranked = (s.select("serial_number", "date", "failure", "model", "model_short", "manufacturer",
-                   "capacity_bytes", "is_data_drive", "smart_9_raw")
+                   "capacity_bytes", "is_data_drive",
+                   F.expr(corrected_poh_sql("model_short", "smart_9_raw")).alias("smart_9_raw"))
           .withColumn("_rf", F.row_number().over(w_first))
           .withColumn("_rl", F.row_number().over(w_last)))
 
@@ -111,7 +131,8 @@ SELECT
 # reappeared after a failure row, which Backblaze treats as not failed.
 final_failures_in_silver = spark.sql(f"""
   SELECT count(*) FROM (SELECT serial_number, max_by(failure, date) f FROM {SILVER} GROUP BY 1) WHERE f = 1""").first()[0]
-chk.update(final_failures_in_silver=final_failures_in_silver, window_start=str(win_start), window_end=str(win_end))
+chk.update(final_failures_in_silver=final_failures_in_silver, window_start=str(win_start), window_end=str(win_end),
+           smart9_wrapped_drives_by_model=wrap_by_model)
 print(json.dumps(chk, indent=2))
 
 assert chk["n_rows"] == chk["n_serials"] == chk["silver_serials"], "drive_lifetimes not one row per silver serial"

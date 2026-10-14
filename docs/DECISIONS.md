@@ -150,3 +150,20 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
 10. **GitHub Actions** runs pytest on every push.
 11. **Human-only steps** (Kian): building and publishing the Tableau Public dashboard from the prepared
     extracts and build spec, and the viewer test.
+
+## 2026-10-14 — SMART 9 (power-on hours) wraparound correction
+
+- **Found:** in the first `drive_lifetimes` build, 4,543 ST8000NM0055 drives had power-on hours that
+  *decreased* during Q2 2026. On ST8000NM0055 and ST8000DM002, SMART 9 drops from 78,187 to ~0: the
+  counter wraps modulo 78,188 hours (~8.9 years). Most ST8000DM002 drives (6,640 of 6,903) had already
+  wrapped before the quarter. Their raw readings looked young and *increasing*, so the plausibility
+  check could not catch them. Raw mean age for ST8000DM002 was 12.4 months; Backblaze publishes 114.8.
+- **Rule (`src/reliability/age.py`):** for those two models, readings below 30,000 h get +78,188 h.
+  These models were all installed years before the window. Any other data-drive model showing the wrap
+  signature (a day-over-day drop from ≥ 70,000 h to ≤ 1,000 h) fails the gold job, so new cases cannot
+  slip through silently. SSDs wrap at 65,535 but are excluded from analysis.
+- **Validation:** after correction, mean age per model at the end of Q2 2026 is within 1.5 months of
+  Backblaze's published average age for 30 of 31 models (ST8000DM002: 115.4 vs 114.8). The outlier is
+  MG08ACA16TA at +3.1 months (`results/validation/age_check_Q2_2026.csv`).
+- **Alternatives:** dropping these drives' ages (loses the oldest, most wear-out-relevant models);
+  using first-seen date as age (left truncation makes that wrong for every drive installed before the window).
