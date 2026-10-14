@@ -1,4 +1,15 @@
 {
+  "Q1_2026": {
+    "published_models": 33,
+    "models_found_in_pipeline": 33,
+    "drive_count_exact": 33,
+    "drive_days_exact": 33,
+    "failures_exact": 33,
+    "failures_total_backblaze": 1030,
+    "failures_total_pipeline_same_models": 1030,
+    "models_with_failure_diff": [],
+    "models_with_count_or_days_diff": []
+  },
   "Q2_2026": {
     "published_models": 31,
     "models_found_in_pipeline": 31,
@@ -70,5 +81,10 @@
       }
     ],
     "models_with_count_or_days_diff": []
+  },
+  "interpretation": {
+    "pass_criterion": "drive counts and drive-days match exactly for every published model; failure differences listed and explained (DECISIONS approved change 4)",
+    "Q1_2026": "Exact match on all 33 published models: drive count, drive-days and failures (1,030 = 1,030).",
+    "Q2_2026": "Drive count and drive-days exact for all 31 models. Failures exact for 21/31; pipeline counts 18 more (1,516 vs 1,498, +1.2%), never fewer, spread across 10 models (max +4, ST24000NM002H). Not caused by pipeline logic: the same code matches Q1 2026 exactly. Not caused by a later data update: the ZIP was uploaded 2026-09-01 21:34 UTC (B2 X-Bz-Upload-Timestamp 1788298459972), before the blog post (2026-09-29). Probable cause: Backblaze's quarter-end failure curation (clone / temporary-replacement tickets count as not failed; Q3 2025 Drive Stats post) removes some failures that remain flagged failure=1 in the published daily files. Not verifiable per drive from public data."
   }
 }

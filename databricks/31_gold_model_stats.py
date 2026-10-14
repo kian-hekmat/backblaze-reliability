@@ -28,7 +28,7 @@ lt = spark.table(LT).select("serial_number", "model", "model_short", "manufactur
 # drive_lifetimes. `failure_flags` keeps every raw failure=1 row (differs only for drives that reappeared).
 rows = (s.join(lt, "serial_number")
         .withColumn("failure_flag", F.col("failure"))
-        .withColumn("failure", (F.col("date") == F.col("failure_date")).cast("int"))
+        .withColumn("failure", F.coalesce((F.col("date") == F.col("failure_date")).cast("int"), F.lit(0)))
         .withColumn("age_days", F.col("entry_age_days") + F.datediff("date", "first_date"))
         .withColumn("age_year", F.when(F.col("age_ok") == 1, F.floor(F.col("age_days") / 365.25)).otherwise(-1)))
 
@@ -64,6 +64,10 @@ print(json.dumps(chk, indent=2))
 assert chk["mps_drive_days"] == chk["mas_drive_days"] == chk["silver_rows"]
 assert chk["mps_failures"] == chk["mas_failures"] == chk["lifetimes_failed"]
 assert chk["mps_failure_flags"] == chk["silver_failure_flags"]
+null_failures = spark.sql(f"""SELECT (SELECT count(*) FROM {CATALOG}.gold.model_period_stats WHERE failures IS NULL)
+                                   + (SELECT count(*) FROM {CATALOG}.gold.model_age_stats WHERE failures IS NULL)""").first()[0]
+chk["rows_with_null_failures"] = null_failures
+assert null_failures == 0, "null failure counts in model stats"
 
 spark.sql(f"DELETE FROM {CATALOG}.ops.quarter_status WHERE quarter = 'ALL' AND stage = 'gold_model_stats'")
 spark.createDataFrame(

@@ -250,3 +250,13 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   reappeared after a failure flag, which Backblaze's own rule treats as not failed. `failures` now uses the
   final-row rule in both tables; raw flags are kept in a new `failure_flags` column. Validation against
   Backblaze's Q1/Q2 2026 tables is unaffected: no reappearances occur from Q1 2025 on.
+
+## 2026-10-14 — External validation result and the Q2 2026 failure gap
+
+- **Q1 2026:** exact match with Backblaze's published table on all 33 models (drive count, drive-days, failures).
+- **Q2 2026:** drive count and drive-days exact on all 31 models; failures +18 (1,516 vs 1,498) across 10 models,
+  always higher in the daily files. The Q2 2026 ZIP was uploaded on 2026-09-01, four weeks before the blog post
+  (2026-09-29), so a later data revision is ruled out. Probable cause: Backblaze's manual quarter-end failure
+  curation, not reflected in the daily `failure` flags. **Decision:** keep the daily-file flags (the only public,
+  per-drive source) and state the +1.2% gap in RESULTS and LIMITATIONS. For a reliability team this means: AFRs
+  from the raw daily files may run slightly above Backblaze's curated figures in some quarters.

@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-14T21:05:13.266261+00:00",
+  "source": "Backblaze Drive Stats quarterly files, https://www.backblaze.com/cloud-storage/resources/hard-drive-test-data",
+  "date_range": [
+    "2023-07-01",
+    "2026-06-30"
+  ],
+  "quarters": [
+    "Q3_2023",
+    "Q4_2023",
+    "Q1_2024",
+    "Q2_2024",
+    "Q3_2024",
+    "Q4_2024",
+    "Q1_2025",
+    "Q2_2025",
+    "Q3_2025",
+    "Q4_2025",
+    "Q1_2026",
+    "Q2_2026"
+  ],
+  "rows_per_quarter": {
+    "Q1_2024": 25189213,
+    "Q1_2025": 27799986,
+    "Q1_2026": 30597484,
+    "Q2_2024": 26022269,
+    "Q2_2025": 28808042,
+    "Q2_2026": 31968003,
+    "Q3_2023": 23601986,
+    "Q3_2024": 26822987,
+    "Q3_2025": 29844451,
+    "Q4_2023": 24790999,
+    "Q4_2024": 27345292,
+    "Q4_2025": 30941708
+  },
+  "all_drives": {
+    "drive_day_rows": 333732420,
+    "drives": 409830,
+    "models": 97,
+    "counted_failures": 13255,
+    "raw_failure_flags": 13582
+  },
+  "data_drives_ge_4tb": {
+    "drive_day_rows": 329208251,
+    "drives": 404782,
+    "models": 66,
+    "failures": 13076
+  },
+  "drive_day_feature_rows": 329208251,
+  "feature_reference_check": {
+    "rows_compared": 185641,
+    "mismatches": 0
+  }
+}
