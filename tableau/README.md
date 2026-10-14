@@ -56,7 +56,8 @@ summed inputs instead, which matches Backblaze's formula:
 3. Drag `manufacturer` to **Color** on the Marks card.
 4. Drag `drive_days`, `drive_count` and `failures` to **Tooltip** on the Marks card.
 5. Sort descending: hover over the `AFR %` axis and click the sort icon (or toolbar → Sort Descending).
-6. Apply Backblaze's quarterly inclusion rule so tiny populations don't dominate:
+6. Drag `quarter` to **Filters** → select only **Q2_2026** (the extract now holds all 12 quarters).
+   Then apply Backblaze's quarterly inclusion rule so tiny populations don't dominate:
    - Drag `drive_count` to **Filters** → choose **Sum** → set **At least** to `101` → OK.
    - Drag `drive_days` to **Filters** → **Sum** → **At least** `10001` → OK.
 7. Drag `AFR %` onto **Label** on the Marks card to show values. Right-click the label → Format → Numbers →
@@ -134,8 +135,9 @@ Data source: `extract_survival_curves`.
 **Check (level = manufacturer, age = 5.0):** HGST **0.890**, Seagate **0.936**, Toshiba **0.946**, WDC **0.961**.
 Curves start at age 0.25 (the first age with at least 100 drives at risk).
 
-**Caption:** *Survival is shown conditional on reaching the first age with at least 100 drives observed. 11 of 26
-high-failure models show rising risk with age (wear-out), 4 show early-life failures that fade, 11 are roughly flat.*
+**Caption:** *Survival is shown conditional on reaching the first age with at least 100 drives observed. Of the 26
+models with at least 30 failures, 11 show rising risk with age (wear-out), 4 show early-life failures that fade, and 11 are
+roughly flat.*
 
 ### View 3a: Early warning trade-off (sheet name: `Alerts vs failures caught`)
 Data source: `extract_ew_tradeoff`.
