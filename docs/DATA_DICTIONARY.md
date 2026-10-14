@@ -306,3 +306,36 @@ those reference implementations on 200 sampled drives per quarter.
 | `days_to_failure` | INT | Days until the drive's failure (null if it does not fail in the window) |
 | `fail_7d`, `fail_30d` | INT | Fails within the next 7 / 30 days, counting today |
 | `label_7d_known`, `label_30d_known` | BOOLEAN | False when the horizon extends past the window end for a non-failed drive (excluded from training and evaluation) |
+
+## Results tables — `backblaze.gold.res_*` (loaded by `databricks/50_load_results.py` from `results/`)
+
+| Table | Source file | Grain | Key columns |
+|---|---|---|---|
+| `res_bayes_estimates` | `results/phase4/bayes_estimates.csv` | model | `drive_days`, `failures`, `raw_afr`, `afr_observed_mix_median/_lo/_hi` (posterior AFR %/yr, 90% CI) |
+| `res_weibull_by_model` | `weibull_by_model.csv` | model (≥ 30 failures) | `shape_k`, `shape_lo95/hi95`, `scale_years`, `hazard_shape` (increasing / constant / decreasing) |
+| `res_km_by_model`, `res_km_by_manufacturer` | `km_by_*.csv` | model or manufacturer × age (0.25-year grid) | `survival`, `ci_lower/upper`, `at_risk`, `start_age` |
+| `res_out_of_time_predictions` | `out_of_time_predictions_main_overdispersed_no_age.csv` | model | `pred_lo/median/hi`, `actual`, `covered` (test year Q3 2025 – Q2 2026) |
+| `res_oot_vs_hazard` | `oot_vs_hazard.csv` | model | forecast `log_ratio` with Weibull `shape_k` |
+| `res_afr_baseline_quarter` | `afr_baseline_quarter.csv` | model × quarter | raw AFR inputs and AFR |
+| `res_ew_metrics_30d` | `results/phase5/metrics_30d.csv` | alert model × budget | `threshold`, `pr_auc`, `recall`, `precision`, `false_alarms_per_1000`, drive-level lead-time shares |
+| `res_ew_metrics_by_manufacturer_30d` | `metrics_by_manufacturer_30d.csv` | alert model × manufacturer | same metrics at the rule's budget |
+| `res_ew_tradeoff_30d` | `tradeoff_30d.csv` | alert model × budget | `recall`, `false_alarms_per_1000` |
+| `res_ew_lead_times_30d` | `lead_times_30d.csv` | failed test drive | first-alert lead days per alert model at the rule's budget; `any_signal` |
+| `res_ew_feature_importance_30d` | `feature_importance_30d.csv` | feature | LightGBM gain share |
+| `res_ew_test_scores_30d` | `data/results/ew_test_scores_30d.parquet` (not in git) | test drive-day (33,488,446 rows) | `score_lightgbm`, `rule_alert`, `fail_30d`, `days_to_failure` |
+
+## Serving views — `backblaze.analytics` (`databricks/sql/10_analytics_views.sql`)
+
+| View | Grain | Purpose |
+|---|---|---|
+| `model_quarter_afr` | data-drive model × quarter | AFR inputs and Backblaze-formula AFR |
+| `model_window_afr` | data-drive model | whole-window drives, drive-days, failures, AFR, mean age |
+| `age_year_afr` | manufacturer × age year | AFR by power-on age (descriptive; cross-model) |
+| `fleet_composition` | quarter × manufacturer × capacity | fleet mix over time |
+| `failed_drive_warning` | failed data drive | first day any critical SMART attribute was nonzero |
+| `model_risk` | model | raw AFR, Bayesian AFR with 90% CI, Weibull hazard shape |
+| `survival_curves` | model / manufacturer × age | Kaplan-Meier curves |
+| `ew_tradeoff` | alert model × budget | alerts vs failure-days caught |
+| `ew_daily_alerts` | test drive-day | LightGBM alert at the 5 / 1,000 operating point and the rule's alert |
+
+Reconciliation of views against gold: `databricks/sql/20_validate.sql` (13 checks; `results/serving_validation.json`).
