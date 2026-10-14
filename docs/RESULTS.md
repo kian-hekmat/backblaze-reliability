@@ -207,5 +207,6 @@ Drive level, 30-day model ([`metrics_30d.csv`](../results/phase5/metrics_30d.csv
    before acting on models whose interval spans the fleet range (§3.2).
 3. **Run SMART alerting from a model at a chosen budget, not the any-nonzero rule.** The rule flags ~10% of healthy
    drives per year. LightGBM at 5 alerts per 1,000 drive-days alerts 64.6% of failing drives at least a week ahead
-   (median 68 days of warning), while flagging ~2.5% of healthy drives per year. About 1 in 8 failures (12.5%) give
-   no SMART warning at all, so redundancy, not prediction, has to cover those (§4.2, §4.4).
+   (median 68 days of warning), while flagging ~2.5% of healthy drives per year. About 1 in 8 failures (183 of 1,459)
+   is never alerted even at the rule's budget, and almost all of those (181) showed no critical SMART signal, so
+   redundancy, not prediction, has to cover them (§4.2, §4.4).

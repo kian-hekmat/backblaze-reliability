@@ -68,9 +68,10 @@ Each item states what is limited, its likely effect, and the evidence. Numbers t
 - **SMART fields vary by manufacturer.** SMART 187/188 are reported almost only by Seagate (Q2 2026 coverage: Seagate
   98%, others ≤ 0.4%). The simple rule's false-alarm rate ranges from 28 per 1,000 drive-days (WDC) to 145 (Seagate);
   results are reported per manufacturer (`results/phase5/metrics_by_manufacturer_30d.csv`).
-- **Sudden failures:** 181 of 1,459 failed test drives (12.4%) never showed a critical SMART signal, and none of the
-  models alerts on them. Toshiba is worst: 36% of its failed test drives had no signal
-  (`results/phase5/undetected_30d.json`, `lead_times_30d.csv`).
+- **Sudden failures:** 346 of 1,459 failed test drives (23.7%) never showed a critical SMART signal (5/187/188/197/198).
+  LightGBM still alerted on 165 of them through other features; the other 181 make up almost all (181 of 183) of the
+  failures it never alerts on, at the rule's budget. Toshiba is worst: 36% of its failed test drives had no critical
+  signal (`results/phase5/undetected_30d.json`, `lead_times_30d.csv`).
 - **Test window:** the test period is one year (Q3 2025 – Q2 2026), so lead times longer than the test window are
   truncated, and failures in the last 30 days of the window have unknown 30-day labels and are excluded.
 - **Sampling:** training keeps all positive rows and 2% of negative rows. Scores are used only for ranking and

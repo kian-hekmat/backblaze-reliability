@@ -162,7 +162,7 @@ Data source: `extract_ew_lead_times`.
 
 **Caption for 3a + 3b:** *At 5 alerts per 1,000 drive-days, the model warns on about two-thirds of failing drives at
 least a week ahead while flagging about 2.5% of healthy drives per year; the "any SMART error" rule flags about 10%.
-About 1 in 8 failures shows no SMART warning at all.*
+About 1 in 8 failures is never flagged, almost always because the drive showed no SMART warning signs.*
 
 ### Dashboard
 1. New Dashboard, size **Automatic** (or Desktop 1200 × 1600).
