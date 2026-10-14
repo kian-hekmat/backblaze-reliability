@@ -59,7 +59,7 @@ it added a copy of the data and a reconciliation step without meeting any need D
 |---|---|---|
 | 0. Setup: repo, Python env, CI, Databricks catalog/schemas/volumes | **Done** | `databricks/00_setup_catalog.py`; pytest CI |
 | 1. Data profiling (Q2 2026) and data-quality rules | **Done** | [`results/profiling/Q2_2026/`](results/profiling/Q2_2026/), [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md), [`docs/DECISIONS.md`](docs/DECISIONS.md) |
-| 2. Vertical slice: Q2 2026 through bronze, silver, gold, analytics views, Tableau extract | In progress | Bronze → silver → gold → Parquet export run and reconciled for Q2 2026 (below). Analytics views, pandas AFR cross-check and extract still to do |
+| 2. Vertical slice: Q2 2026 through bronze, silver, gold, analytics views, Tableau extract | **Pipeline verified**; rough Tableau view pending (Kian) | Reconciliation below; [`results/phase2_afr_reconciliation.json`](results/phase2_afr_reconciliation.json), [`results/serving_validation.json`](results/serving_validation.json), [`tableau/extract_model_quarter_afr.csv`](tableau/extract_model_quarter_afr.csv) |
 | 3. Full-scope pipeline (12 quarters) | Not started | All 12 raw ZIPs uploaded and size-verified |
 | 4. Survival and Bayesian failure rates | Not started | |
 | 5. Early-warning prediction | Not started | |
@@ -73,6 +73,9 @@ it added a copy of the data and a reconciliation step without meeting any need D
 - `model_period_stats` / `model_age_stats` totals equal silver (31,968,003 drive-days, 1,522 failures).
 - `drive_day_features`: 31,613,498 rows (exactly the data-drive rows). Spark features match the reference
   implementation on 200 sampled drives with 0 mismatches (the no-future-data check).
+- Serving views in `backblaze.analytics` reconcile with gold (8 checks, all diffs 0).
+- Independent pandas AFR on the raw quarter matches the serving view for all 80 models: drive counts,
+  drive-days and failures exactly, AFR to 1e-9.
 - Drive ages from SMART 9, after correcting a counter wraparound on two Seagate 8 TB models, are within
   1.5 months of Backblaze's published average age for 30 of 31 models
   ([`results/validation/age_check_Q2_2026.csv`](results/validation/age_check_Q2_2026.csv)).
@@ -81,7 +84,7 @@ it added a copy of the data and a reconciliation step without meeting any need D
 
 ```
 databricks/        notebooks: 00 setup, 10 bronze, 20 silver, 30–32 gold, 40 export, 50 results load; run_notebook.sh
-databricks/sql/    analytics views, validation, analysis queries, Tableau extracts (in progress)
+databricks/sql/    analytics views, validation, analysis queries, Tableau extracts
 databricks.yml     asset bundle: the quarterly pipeline job
 src/reliability/   pure Python: afr, normalize, age, features, labels (survival, bayes, early_warning to come)
 scripts/           local helpers: profiling, Databricks SQL runner, validation checks
@@ -105,6 +108,10 @@ bash databricks/run_notebook.sh 30_gold_drive_lifetimes
 bash databricks/run_notebook.sh 31_gold_model_stats
 bash databricks/run_notebook.sh 32_gold_features '{"quarter":"Q2_2026"}'
 bash databricks/run_notebook.sh 40_export_gold
+uv run python scripts/dbsql.py -f databricks/sql/10_analytics_views.sql          # serving views
+uv run python scripts/validate_serving.py                                         # reconciliation
+uv run python scripts/dbsql.py -f databricks/sql/30_analysis_queries.sql         # -> results/sql/
+uv run python scripts/dbsql.py -f databricks/sql/40_tableau_extracts.sql -o tableau
 # or the whole chain for the next unprocessed quarter:
 databricks bundle deploy && databricks bundle run quarterly_pipeline
 ```
