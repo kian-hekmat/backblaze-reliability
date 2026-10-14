@@ -1,295 +1,295 @@
 {
   "n_sims": 40,
   "nominal": 0.9,
-  "overall_coverage": 0.885576923076923,
+  "overall_coverage": 0.891346153846154,
   "coverage_by_model_drive_days": {
-    "1998": 0.8654545454545455,
-    "19998": 0.8812260536398467,
-    "300000": 0.9242424242424242,
-    "1999998": 0.8708333333333333
+    "1998": 0.8859315589353612,
+    "19998": 0.8943396226415095,
+    "300000": 0.9053497942386831,
+    "1999998": 0.8810408921933085
   },
-  "sims_with_divergences": 3,
-  "max_r_hat_over_sims": 1.06900954246521,
+  "sims_with_divergences": 11,
+  "max_r_hat_over_sims": 1.1151416301727295,
   "per_sim": [
     {
       "seed": 1000,
-      "coverage": 0.9615384615384616,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.02962327003479
+      "max_r_hat": 1.0194981098175049
     },
     {
       "seed": 1001,
-      "coverage": 0.8846153846153846,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0346137285232544
+      "max_r_hat": 1.015000820159912
     },
     {
       "seed": 1002,
       "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0345767736434937
+      "max_r_hat": 1.0252431631088257
     },
     {
       "seed": 1003,
-      "coverage": 0.6923076923076923,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0086432695388794
+      "max_r_hat": 1.0135411024093628
     },
     {
       "seed": 1004,
-      "coverage": 0.8461538461538461,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0084818601608276
-    },
-    {
-      "seed": 1005,
       "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0083478689193726
+      "max_r_hat": 1.013248324394226
+    },
+    {
+      "seed": 1005,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 1,
+      "max_r_hat": 1.029756784439087
     },
     {
       "seed": 1006,
-      "coverage": 0.9230769230769231,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0071783065795898
+      "max_r_hat": 1.0266947746276855
     },
     {
       "seed": 1007,
-      "coverage": 0.9230769230769231,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.018904209136963
+      "max_r_hat": 1.0091639757156372
     },
     {
       "seed": 1008,
-      "coverage": 0.9615384615384616,
+      "coverage": 0.7692307692307693,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0173336267471313
+      "max_r_hat": 1.1036032438278198
     },
     {
       "seed": 1009,
-      "coverage": 0.9230769230769231,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0092471837997437
+      "max_r_hat": 1.0110844373703003
     },
     {
       "seed": 1010,
-      "coverage": 0.8076923076923077,
+      "coverage": 1.0,
       "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0244606733322144
+      "divergences": 6,
+      "max_r_hat": 1.0105122327804565
     },
     {
       "seed": 1011,
-      "coverage": 1.0,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.016420602798462
+      "max_r_hat": 1.0654230117797852
     },
     {
       "seed": 1012,
       "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0285042524337769
+      "max_r_hat": 1.0251282453536987
     },
     {
       "seed": 1013,
       "coverage": 0.8461538461538461,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.005964756011963
+      "max_r_hat": 1.0100864171981812
     },
     {
       "seed": 1014,
-      "coverage": 0.8076923076923077,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0020989179611206
+      "divergences": 1,
+      "max_r_hat": 1.019640326499939
     },
     {
       "seed": 1015,
-      "coverage": 0.9230769230769231,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0076227188110352
+      "max_r_hat": 1.0181379318237305
     },
     {
       "seed": 1016,
-      "coverage": 0.8846153846153846,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
-      "divergences": 3,
-      "max_r_hat": 1.0108429193496704
+      "divergences": 0,
+      "max_r_hat": 1.0386981964111328
     },
     {
       "seed": 1017,
-      "coverage": 0.9615384615384616,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0157370567321777
+      "max_r_hat": 1.013749122619629
     },
     {
       "seed": 1018,
-      "coverage": 0.8076923076923077,
+      "coverage": 0.8846153846153846,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.034376621246338
+      "max_r_hat": 1.0653842687606812
     },
     {
       "seed": 1019,
-      "coverage": 0.9615384615384616,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0097616910934448
-    },
-    {
-      "seed": 1020,
       "coverage": 0.8461538461538461,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.010757327079773
+      "max_r_hat": 1.040546178817749
+    },
+    {
+      "seed": 1020,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0217914581298828
     },
     {
       "seed": 1021,
-      "coverage": 0.8846153846153846,
+      "coverage": 0.9615384615384616,
       "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0222247838974
+      "divergences": 2,
+      "max_r_hat": 1.0382698774337769
     },
     {
       "seed": 1022,
-      "coverage": 0.8846153846153846,
+      "coverage": 0.9230769230769231,
       "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0158904790878296
+      "divergences": 3,
+      "max_r_hat": 1.0145549774169922
     },
     {
       "seed": 1023,
       "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.06900954246521
+      "max_r_hat": 1.0116405487060547
     },
     {
       "seed": 1024,
-      "coverage": 0.9230769230769231,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.004293441772461
-    },
-    {
-      "seed": 1025,
-      "coverage": 0.9615384615384616,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.007648229598999
-    },
-    {
-      "seed": 1026,
       "coverage": 0.8076923076923077,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0178167819976807
+      "max_r_hat": 1.0751566886901855
     },
     {
-      "seed": 1027,
-      "coverage": 0.8846153846153846,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.025355339050293
-    },
-    {
-      "seed": 1028,
-      "coverage": 0.9230769230769231,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0073643922805786
-    },
-    {
-      "seed": 1029,
-      "coverage": 0.8846153846153846,
-      "n_models": 26,
-      "divergences": 1,
-      "max_r_hat": 1.0151830911636353
-    },
-    {
-      "seed": 1030,
-      "coverage": 0.8846153846153846,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0129717588424683
-    },
-    {
-      "seed": 1031,
+      "seed": 1025,
       "coverage": 0.7692307692307693,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.008753776550293
+      "max_r_hat": 1.0478861331939697
     },
     {
-      "seed": 1032,
+      "seed": 1026,
       "coverage": 0.9615384615384616,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.016050100326538
+      "max_r_hat": 1.0268120765686035
+    },
+    {
+      "seed": 1027,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 3,
+      "max_r_hat": 1.0248618125915527
+    },
+    {
+      "seed": 1028,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0088163614273071
+    },
+    {
+      "seed": 1029,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 67,
+      "max_r_hat": 1.1151416301727295
+    },
+    {
+      "seed": 1030,
+      "coverage": 0.9615384615384616,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0286667346954346
+    },
+    {
+      "seed": 1031,
+      "coverage": 0.8846153846153846,
+      "n_models": 26,
+      "divergences": 1,
+      "max_r_hat": 1.0163171291351318
+    },
+    {
+      "seed": 1032,
+      "coverage": 0.7307692307692307,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.038407325744629
     },
     {
       "seed": 1033,
       "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.0176044702529907
+      "max_r_hat": 1.0193778276443481
     },
     {
       "seed": 1034,
-      "coverage": 0.8461538461538461,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.011306881904602
-    },
-    {
-      "seed": 1035,
-      "coverage": 0.8846153846153846,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.003443717956543
-    },
-    {
-      "seed": 1036,
-      "coverage": 0.8076923076923077,
-      "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0222851037979126
-    },
-    {
-      "seed": 1037,
       "coverage": 0.9230769230769231,
       "n_models": 26,
       "divergences": 0,
-      "max_r_hat": 1.028256893157959
+      "max_r_hat": 1.0184755325317383
+    },
+    {
+      "seed": 1035,
+      "coverage": 0.8461538461538461,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0447620153427124
+    },
+    {
+      "seed": 1036,
+      "coverage": 0.9230769230769231,
+      "n_models": 26,
+      "divergences": 0,
+      "max_r_hat": 1.0096594095230103
+    },
+    {
+      "seed": 1037,
+      "coverage": 0.8076923076923077,
+      "n_models": 26,
+      "divergences": 3,
+      "max_r_hat": 1.0084338188171387
     },
     {
       "seed": 1038,
-      "coverage": 0.7692307692307693,
+      "coverage": 0.8461538461538461,
       "n_models": 26,
-      "divergences": 1,
-      "max_r_hat": 1.0053942203521729
+      "divergences": 4,
+      "max_r_hat": 1.0417007207870483
     },
     {
       "seed": 1039,
       "coverage": 0.9615384615384616,
       "n_models": 26,
-      "divergences": 0,
-      "max_r_hat": 1.0103216171264648
+      "divergences": 4,
+      "max_r_hat": 1.0417516231536865
     }
   ]
 }

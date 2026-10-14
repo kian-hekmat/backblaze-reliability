@@ -42,7 +42,7 @@ def synth_fleet(seed, n_per_mfr=(8, 8, 6, 4), sigma_mq=0.0, quarters=QUARTERS, t
 @pytest.fixture(scope="module")
 def one_fit():
     df, truth, beta = synth_fleet(0, quarters=QUARTERS[:4])
-    prep = prepare(df, overdispersion=False)
+    prep = prepare(df, overdispersion=False, age_effect=True)
     mcmc = fit(prep, num_warmup=500, num_samples=500, num_chains=2, seed=0)
     return df, truth, beta, prep, mcmc
 
@@ -61,7 +61,7 @@ def test_interval_coverage_across_simulations(overdispersion, sigma_mq):
     hits = total = 0
     for seed in range(5):
         df, truth, _ = synth_fleet(100 + seed, sigma_mq=sigma_mq, quarters=QUARTERS[:4])
-        prep = prepare(df, overdispersion=overdispersion)
+        prep = prepare(df, overdispersion=overdispersion, age_effect=True)
         est = model_estimates(prep, fit(prep, num_warmup=400, num_samples=400, num_chains=1, seed=seed))
         for r in est.itertuples():
             hits += r.afr_observed_mix_lo <= truth[r.model] <= r.afr_observed_mix_hi
@@ -77,7 +77,7 @@ def test_overdispersed_forecasts_cover_where_poisson_does_not():
         df, _, _ = synth_fleet(200 + seed, sigma_mq=0.35)
         train, test = df[df["quarter"].isin(QUARTERS[:5])], df[df["quarter"].isin(QUARTERS[5:])]
         for od in (False, True):
-            prep = prepare(train, overdispersion=od)
+            prep = prepare(train, overdispersion=od, age_effect=True)
             pred = predict_counts(prep, fit(prep, num_warmup=400, num_samples=400, num_chains=1, seed=seed), test)
             cover[od].extend(pred["covered"].tolist())
     assert np.mean(cover[True]) >= 0.8
@@ -107,3 +107,25 @@ def test_predict_counts_output_shape(one_fit):
     pred = predict_counts(prep, mcmc, df)
     assert set(pred.columns) >= {"pred_lo", "pred_median", "pred_hi", "actual", "covered"}
     assert len(pred) == df["model"].nunique()
+
+
+def test_no_age_effect_model_covers_rates_at_observed_age_mix():
+    """Main-analysis variant: no shared age curve. Its per-model rate is the long-run rate at the model's observed
+    age mix, so 90% intervals should still cover that truth."""
+    hits = total = 0
+    for seed in range(4):
+        df, truth, _ = synth_fleet(300 + seed, sigma_mq=0.3, quarters=QUARTERS[:4])
+        prep = prepare(df, overdispersion=True, age_effect=False)
+        assert prep.n_age == 1
+        est = model_estimates(prep, fit(prep, num_warmup=400, num_samples=400, num_chains=1, seed=seed))
+        for r in est.itertuples():
+            hits += r.afr_observed_mix_lo <= truth[r.model] <= r.afr_observed_mix_hi
+            total += 1
+    assert 0.78 <= hits / total <= 0.99, hits / total
+
+
+def test_diagnostics_finite_without_age_effect():
+    df, _, _ = synth_fleet(5, sigma_mq=0.3, quarters=QUARTERS[:3])
+    prep = prepare(df, overdispersion=True, age_effect=False)
+    d = diagnostics(fit(prep, num_warmup=300, num_samples=300, num_chains=2, seed=0))
+    assert np.isfinite(d["max_r_hat"]) and np.isfinite(d["min_ess"])

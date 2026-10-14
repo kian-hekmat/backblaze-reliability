@@ -34,7 +34,7 @@ EXP = ROOT / "data/exports"
 QUARTERS = ["Q3_2023", "Q4_2023", "Q1_2024", "Q2_2024", "Q3_2024", "Q4_2024",
             "Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025", "Q1_2026", "Q2_2026"]
 MIN_DRIVES_KM, MIN_FAILURES_WEIBULL, MIN_AT_RISK = 500, 30, 100
-MCMC_KW = dict(num_warmup=300, num_samples=300, num_chains=2) if QUICK else dict(num_warmup=1500, num_samples=1000, num_chains=4, target_accept=0.99)
+MCMC_KW = dict(num_warmup=300, num_samples=300, num_chains=2) if QUICK else dict(num_warmup=3000, num_samples=1000, num_chains=4, target_accept=0.99)
 
 lt = pd.read_parquet(EXP / "drive_lifetimes")
 mps = pd.read_parquet(EXP / "model_period_stats")
@@ -83,8 +83,8 @@ for model, g in surv.groupby("model"):
 pd.DataFrame(wb).sort_values("shape_k").to_csv(OUT / "weibull_by_model.csv", index=False)
 
 # 4. Hierarchical Bayes on the full window -------------------------------------------------------------------
-# Main model: Poisson with model x quarter overdispersion (DECISIONS 2026-10-14). The Poisson-only model as
-# originally specified is fitted too, for the out-of-time comparison.
+# Main model (DECISIONS 2026-10-14, option A): Poisson with manufacturer pooling and model x quarter overdispersion,
+# no shared age curve. The age-aware variants are fitted in the out-of-time comparison only.
 cells = mas[["model", "manufacturer", "quarter", "age_year", "drive_days", "failures"]]
 excluded_unknown_age = int(cells.loc[cells["age_year"] < 0, "drive_days"].sum())
 tr = mps.groupby(["model", "quarter"], as_index=False)[["drive_days", "failures"]].sum()
@@ -97,16 +97,15 @@ for m_, g in tr[tr["quarter"].isin(QUARTERS[:8])].groupby("model"):
                        "dispersion_index": float(((g["failures"] - exp_) ** 2 / exp_).sum() / (len(g) - 1))})
 pd.DataFrame(q_disp).sort_values("dispersion_index", ascending=False).to_csv(OUT / "overdispersion_train_quarters.csv", index=False)
 
-prep = bayes.prepare(cells, overdispersion=True)
+prep = bayes.prepare(cells, overdispersion=True, age_effect=False)
 mcmc = bayes.fit(prep, seed=0, **MCMC_KW)
 diag = bayes.diagnostics(mcmc)
-diag.update(model="poisson + model x quarter overdispersion", sigma_mq_median=float(np.median(mcmc.get_samples()["sigma_mq"])),
+diag.update(model="poisson, manufacturer pooling, model x quarter overdispersion, no shared age effect", sigma_mq_median=float(np.median(mcmc.get_samples()["sigma_mq"])),
             excluded_unknown_age_drive_days=excluded_unknown_age, mcmc=MCMC_KW, n_models=len(prep.models),
             n_cells=len(prep.cells), quarters=quarters_present)
 (OUT / "bayes_diagnostics.json").write_text(json.dumps(diag, indent=2))
 est = bayes.model_estimates(prep, mcmc)
 est.to_csv(OUT / "bayes_estimates.csv", index=False)
-bayes.age_effect(mcmc).to_csv(OUT / "bayes_age_effect.csv", index=False)
 est["abs_diff"] = (est["afr_observed_mix_median"] - est["raw_afr"]).abs()
 est["interval_width"] = est["afr_observed_mix_hi"] - est["afr_observed_mix_lo"]
 est.sort_values("abs_diff", ascending=False).to_csv(OUT / "bayes_vs_raw_disagreement.csv", index=False)
@@ -116,13 +115,20 @@ print("bayes diagnostics:", {k: diag[k] for k in ["max_r_hat", "min_ess", "diver
 if len(quarters_present) == 12:
     train_q, test_q = QUARTERS[:8], QUARTERS[8:]
     summ = {"train_quarters": train_q, "test_quarters": test_q}
-    for name, od in [("overdispersed", True), ("poisson_only", False)]:
-        prep_t = bayes.prepare(cells[cells["quarter"].isin(train_q)], overdispersion=od)
+    variants = [("main_overdispersed_no_age", True, False), ("overdispersed_age", True, True),
+                ("poisson_only_age_as_specified", False, True)]
+    for name, od, age in variants:
+        prep_t = bayes.prepare(cells[cells["quarter"].isin(train_q)], overdispersion=od, age_effect=age)
         mcmc_t = bayes.fit(prep_t, seed=1, **MCMC_KW)
         diag_t = bayes.diagnostics(mcmc_t)
+        if age:
+            bayes.age_effect(mcmc_t).to_csv(OUT / f"age_curve_cross_sectional_{name}.csv", index=False)
         pred = bayes.predict_counts(prep_t, mcmc_t, cells[cells["quarter"].isin(test_q)])
         pred.to_csv(OUT / f"out_of_time_predictions_{name}.csv", index=False)
-        summ[name] = {"models_predicted": len(pred), "coverage_90": float(pred["covered"].mean()),
+        big = pred[pred["drive_days"] >= 1_000_000]
+        summ[name] = {"models_predicted": len(pred),
+                      "large_models_total_actual": int(big["actual"].sum()),
+                      "large_models_total_pred_median": float(big["pred_median"].sum()), "coverage_90": float(pred["covered"].mean()),
                       "n_covered": int(pred["covered"].sum()),
                       "below_interval": int((pred["actual"] < pred["pred_lo"]).sum()),
                       "above_interval": int((pred["actual"] > pred["pred_hi"]).sum()),
@@ -139,7 +145,7 @@ SENS_MODEL, SENS_Q = "TOSHIBA MG08ACA16TEY", "Q3_2025"
 if SENS_Q in quarters_present:
     sq = q[q["model"] == SENS_MODEL].set_index("quarter")[["drive_days", "failures", "afr_pct"]]
     keep = cells[~((cells["model"] == SENS_MODEL) & (cells["quarter"] == SENS_Q))]
-    prep_s = bayes.prepare(keep, overdispersion=True)
+    prep_s = bayes.prepare(keep, overdispersion=True, age_effect=False)
     est_s = bayes.model_estimates(prep_s, bayes.fit(prep_s, seed=2, **MCMC_KW))
     full_row = est[est["model"] == SENS_MODEL].iloc[0]
     sens_row = est_s[est_s["model"] == SENS_MODEL].iloc[0]

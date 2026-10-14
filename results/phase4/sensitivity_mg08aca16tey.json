@@ -78,14 +78,14 @@
   "raw_afr_window_with": 3.2404195023257656,
   "raw_afr_window_without": 2.0391221336636964,
   "bayes_with": {
-    "afr_observed_mix_lo": 1.963615603341,
-    "afr_observed_mix_median": 2.453923901788425,
-    "afr_observed_mix_hi": 3.0603623075351227
+    "afr_observed_mix_lo": 1.9767385907471178,
+    "afr_observed_mix_median": 2.442882303148508,
+    "afr_observed_mix_hi": 3.0170465540140863
   },
   "bayes_without": {
-    "afr_observed_mix_lo": 1.5861526424268249,
-    "afr_observed_mix_median": 1.9644444778266068,
-    "afr_observed_mix_hi": 2.4603135910035747
+    "afr_observed_mix_lo": 1.5960389003157616,
+    "afr_observed_mix_median": 1.9768928177654743,
+    "afr_observed_mix_hi": 2.419291315600276
   },
-  "max_shift_other_models_median_afr": 0.1234827443175397
+  "max_shift_other_models_median_afr": 0.13026632368564606
 }

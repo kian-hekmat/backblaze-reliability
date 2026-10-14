@@ -277,3 +277,22 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   near age 0. Replaced with a log-scale MLE that matches lifelines to 0.1% on well-conditioned data
   (`tests/test_survival.py`).
 - **Sampler:** target_accept 0.99, 1,500 warmup → 0 divergences on the full fit (was 42 at 0.9).
+
+## 2026-10-14 — Decision (Kian): option A, no shared age effect in the Bayesian model
+
+- **Main Bayesian model:** Poisson, partial pooling by manufacturer, model x quarter overdispersion, **no shared age
+  curve** (`bayes.prepare(..., age_effect=False)`). It replaces approved change 2's age-aware model as the main
+  analysis. Age and hazard-shape questions are answered within each model by Kaplan-Meier and Weibull with delayed
+  entry.
+- **Evidence** (`results/phase4/out_of_time_summary.json`; train Q3 2023–Q2 2025, test Q3 2025–Q2 2026, 44 models):
+  - main (overdispersed, no age): 79.5% coverage; 3 models below their interval, 6 above; large models 4,099
+    predicted vs 4,388 actual
+  - overdispersed + shared age curve: 61.4% coverage; large models 5,357 predicted
+  - Poisson-only + age curve (original spec): 54.5% coverage
+- **Given up:** an "age-adjusted" comparison of models at equal age. On this fleet the cross-model age curve can't be
+  separated from drive-generation differences.
+- **Remaining miscalibration:** coverage is 80%, not 90%. The 6 models above their interval include known episodes
+  (MG08ACA16TEY firmware pulls in Q3 2025). Failure rates are non-stationary in ways a quarter-noise term doesn't
+  forecast; LIMITATIONS records this.
+- **Diagnostics:** main fit 0 divergences, R-hat 1.012, min ESS 511 (3,000 warmup, target_accept 0.99). The option-A
+  out-of-time training fit had 1 divergence in 4,000 draws.

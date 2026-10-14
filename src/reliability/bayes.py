@@ -1,4 +1,8 @@
-"""Hierarchical Bayesian failure rates by drive model, with an age effect (NumPyro).
+"""Hierarchical Bayesian failure rates by drive model (NumPyro).
+
+Main analysis (DECISIONS 2026-10-14, option A): no shared age effect; partial pooling by manufacturer plus model x
+quarter overdispersion. The shared age curve (age_effect=True) is kept as an option: on this fleet it is confounded
+with drive generation and over-predicted out of time.
 
 Data: one row per (model, age_year) cell with exposure E = drive_days / 365 (drive-years) and failures y.
 
@@ -47,10 +51,13 @@ def hier_model(model_mfr, cell_model, cell_age, exposure, n_age, n_mfr, cell_mq=
     with numpyro.plate("models", n_model):
         z_i = numpyro.sample("z_model", dist.Normal(0, 1))
     r = numpyro.deterministic("r", mu_mfr[model_mfr] + sigma_model * z_i)
-    sigma_age = numpyro.sample("sigma_age", dist.HalfNormal(0.3))
-    with numpyro.plate("age_steps", n_age - 1):
-        e = numpyro.sample("e_age", dist.Normal(0, 1))
-    beta = numpyro.deterministic("beta", jnp.concatenate([jnp.zeros(1), jnp.cumsum(sigma_age * e)]))
+    if n_age > 1:
+        sigma_age = numpyro.sample("sigma_age", dist.HalfNormal(0.3))
+        with numpyro.plate("age_steps", n_age - 1):
+            e = numpyro.sample("e_age", dist.Normal(0, 1))
+        beta = numpyro.deterministic("beta", jnp.concatenate([jnp.zeros(1), jnp.cumsum(sigma_age * e)]))
+    else:
+        beta = numpyro.deterministic("beta", jnp.zeros(1))
     log_mu = r[cell_model] + beta[cell_age] + jnp.log(exposure)
     if cell_mq is not None:
         sigma_mq = numpyro.sample("sigma_mq", dist.HalfNormal(0.5))
@@ -71,11 +78,12 @@ class Prepared:
     n_mq: int = 0
 
 
-def prepare(df: pd.DataFrame, overdispersion: bool = True) -> Prepared:
+def prepare(df: pd.DataFrame, overdispersion: bool = True, age_effect: bool = False) -> Prepared:
     """df: model, manufacturer, age_year (>= 0), drive_days, failures (any granularity; summed to cells).
-    With overdispersion, df also needs `quarter`, and cells are kept per quarter."""
+    With overdispersion, df also needs `quarter`, and cells are kept per quarter.
+    age_effect=False (main analysis; DECISIONS 2026-10-14) uses one age bucket: no shared age curve."""
     d = df[df["age_year"] >= 0].copy()
-    d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int)
+    d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int) if age_effect else 0
     keys = ["model", "manufacturer", "age_bucket"] + (["quarter"] if overdispersion else [])
     cells = (d.groupby(keys, as_index=False)
              .agg(drive_days=("drive_days", "sum"), failures=("failures", "sum")))
@@ -92,7 +100,7 @@ def prepare(df: pd.DataFrame, overdispersion: bool = True) -> Prepared:
         mq["mq_idx"] = np.arange(len(mq))
         cells = cells.merge(mq, on=["model", "quarter"])
         n_mq = len(mq)
-    return Prepared(cells, models, mfrs, MAX_AGE_YEAR + 1, overdispersion, n_mq)
+    return Prepared(cells, models, mfrs, MAX_AGE_YEAR + 1 if age_effect else 1, overdispersion, n_mq)
 
 
 def fit(prep: Prepared, num_warmup=1000, num_samples=1000, num_chains=4, seed=0, progress_bar=False,
@@ -112,8 +120,9 @@ def fit(prep: Prepared, num_warmup=1000, num_samples=1000, num_chains=4, seed=0,
 def diagnostics(mcmc: MCMC) -> dict:
     samples = {k: v for k, v in mcmc.get_samples(group_by_chain=True).items() if k != "z_mq"}  # per-cell effects: thousands
     s = mcmc_summary(samples, prob=0.9)
-    rhat = {k: float(np.nanmax(v["r_hat"])) for k, v in s.items()}
-    ess = {k: float(np.nanmin(v["n_eff"])) for k, v in s.items()}
+    # constant deterministic sites (e.g. beta = 0 without an age effect, or beta[0]) have undefined R-hat / ESS
+    rhat = {k: float(np.nanmax(v["r_hat"])) for k, v in s.items() if np.isfinite(v["r_hat"]).any()}
+    ess = {k: float(np.nanmin(v["n_eff"])) for k, v in s.items() if np.isfinite(v["n_eff"]).any()}
     div = int(np.asarray(mcmc.get_extra_fields()["diverging"]).sum())
     return {"max_r_hat": max(rhat.values()), "min_ess": min(ess.values()), "divergences": div,
             "r_hat_by_param": rhat, "ess_by_param": ess}
@@ -145,14 +154,16 @@ def model_estimates(prep: Prepared, mcmc: MCMC, prob=0.9) -> pd.DataFrame:
         fleet = rate_by_age @ fleet_w * 100
         lo_o, med_o, hi_o = np.quantile(obs, q)
         lo_f, med_f, hi_f = np.quantile(fleet, q)
-        rows.append({
+        row = {
             "model": m.model, "manufacturer": m.manufacturer,
             "drive_days": int(mc["drive_days"].sum()), "failures": int(mc["failures"].sum()),
             "raw_afr": mc["failures"].sum() / E.sum() * 100,
             "afr_observed_mix_median": med_o, "afr_observed_mix_lo": lo_o, "afr_observed_mix_hi": hi_o,
-            "afr_fleet_mix_median": med_f, "afr_fleet_mix_lo": lo_f, "afr_fleet_mix_hi": hi_f,
-            "mean_age_bucket": float((E * np.arange(prep.n_age)).sum() / E.sum()),
-        })
+        }
+        if prep.n_age > 1:  # fleet-age-mix comparison only exists with an age effect
+            row.update(afr_fleet_mix_median=med_f, afr_fleet_mix_lo=lo_f, afr_fleet_mix_hi=hi_f,
+                       mean_age_bucket=float((E * np.arange(prep.n_age)).sum() / E.sum()))
+        rows.append(row)
     return pd.DataFrame(rows)
 
 
@@ -175,7 +186,7 @@ def predict_counts(prep: Prepared, mcmc: MCMC, new: pd.DataFrame, prob=0.9, seed
     sig = np.asarray(s["sigma_mq"]) if "sigma_mq" in s else None
     rng = np.random.default_rng(seed)
     d = new[new["age_year"] >= 0].copy()
-    d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int)
+    d["age_bucket"] = d["age_year"].clip(upper=MAX_AGE_YEAR).astype(int) if prep.n_age > 1 else 0
     idx = dict(zip(prep.models["model"], prep.models["model_idx"]))
     q = [(1 - prob) / 2, 0.5, 1 - (1 - prob) / 2]
     rows = []
