@@ -226,3 +226,27 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   2023-07-01, 2024-01-01 and 2024-07-01: ST4000DM000 7.85 years (17,899 drives); ST6000DX000 8.44 years
   (883 drives). Both were added to `WRAP_MODELS`. Backblaze's published tables for those quarters were not
   transcribed, so these two models' ages are checked for plausibility only, not against published averages.
+
+## 2026-10-14 — Full-scope age and failure-count fixes (found after the first full gold build)
+
+- **Unknown age jumped to 37,935 data drives (9.4%)** in the first full-scope `drive_lifetimes`, from 134 in the
+  Q2 2026 slice. Two causes:
+  1. **Missing SMART on a drive's first row** (~36k drives, mostly new WUH722222ALE6L4, MG08ACA16TA,
+     WUH721816ALE6L4, MG10ACA20TE). Age now anchors on the drive's first and last **non-null** SMART 9 readings,
+     back-dated to the first observed day (`entry_age_days = poh_first/24 - days(first reading - first day)`).
+  2. **Young replacement drives of wrapping models** (782 ST8000NM0055/ST8000DM002 drives starting ~10k h). The
+     fixed rule "below 30,000 h means wrapped" added 78,188 h to them by mistake. **New rule:** SMART 240 (head
+     flying hours) does not wrap on these drives. On wrapped drives it exceeds SMART 9 by ~78,100 h (median); on
+     unwrapped drives the two agree within ~100 h (2026-06-30 snapshot). A reading is wrapped iff
+     `SMART 240 - SMART 9 > 39,094` (half the modulus). The fixed threshold is kept only as a fallback when
+     SMART 240 is missing.
+  - Validation after both fixes: mean age per model within 1.5 months of Backblaze's published average for
+    30/31 models (Q2 2026) and 31/33 (Q1 2026). Persistent outliers are MG08ACA16TA (+3.1 months in both
+    quarters) and HMS5C4040BLE640 (+2.4, Q1 2026). Our ages run slightly high overall (typically +0.2 to
+    +1.4 months), consistent with Backblaze measuring age differently, e.g. from deployment date
+    (`results/validation/age_check_Q1_2026.csv`, `age_check_Q2_2026.csv`).
+- **Failure counts aligned across gold tables:** `model_period_stats.failures` counted every raw `failure=1`
+  row (13,582) while `drive_lifetimes` counted final-row failures (13,255). The difference is the drives that
+  reappeared after a failure flag, which Backblaze's own rule treats as not failed. `failures` now uses the
+  final-row rule in both tables; raw flags are kept in a new `failure_flags` column. Validation against
+  Backblaze's Q1/Q2 2026 tables is unaffected: no reappearances occur from Q1 2025 on.

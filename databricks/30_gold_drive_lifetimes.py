@@ -6,10 +6,11 @@
 # MAGIC - `failed` = 1 iff the drive's last observed row has failure = 1 (DECISIONS: failure semantics)
 # MAGIC - `event` = failed | censored_window_end (still running on the last window day) |
 # MAGIC   censored_left_fleet (stopped reporting before the window end without a failure row)
-# MAGIC - Age (DECISIONS, approved change 1): `entry_age_days` = SMART 9 power-on hours at first observation / 24;
+# MAGIC - Age (DECISIONS, approved change 1): `entry_age_days` = first non-null SMART 9 power-on hours / 24, back-dated to
+# MAGIC   the first observed day;
 # MAGIC   `exit_age_days` = entry age + calendar days from first to last observation. Survival by age uses
 # MAGIC   delayed entry at `entry_age_days` (left truncation). `age_ok` flags plausible SMART 9 values.
-# MAGIC   SMART 9 is wraparound-corrected first (`reliability.age`; checked against Backblaze's published ages).
+# MAGIC   SMART 9 is wraparound-corrected first using SMART 240 (`reliability.age`; checked against Backblaze's published ages).
 # MAGIC
 # MAGIC Checks: serial unique; every serial whose final silver row is a failure has failed = 1; counts match silver.
 
@@ -55,15 +56,17 @@ w_first = Window.partitionBy("serial_number").orderBy("date")
 w_last = Window.partitionBy("serial_number").orderBy(F.col("date").desc())
 ranked = (s.select("serial_number", "date", "failure", "model", "model_short", "manufacturer",
                    "capacity_bytes", "is_data_drive",
-                   F.expr(corrected_poh_sql("model_short", "smart_9_raw")).alias("smart_9_raw"))
+                   F.expr(corrected_poh_sql("model_short", "smart_9_raw", "smart_240_raw")).alias("poh_c"))
           .withColumn("_rf", F.row_number().over(w_first))
           .withColumn("_rl", F.row_number().over(w_last)))
 
-first_row = ranked.where("_rf = 1").select(
-    "serial_number", F.col("date").alias("first_date"), F.col("smart_9_raw").alias("poh_first"))
+first_row = ranked.where("_rf = 1").select("serial_number", F.col("date").alias("first_date"))
 last_row = ranked.where("_rl = 1").select(
-    "serial_number", F.col("date").alias("last_date"), F.col("failure").alias("last_failure"),
-    F.col("smart_9_raw").alias("poh_last"))
+    "serial_number", F.col("date").alias("last_date"), F.col("failure").alias("last_failure"))
+# Age anchors: first / last *non-null* corrected SMART 9 readings (a drive's first row often lacks SMART data)
+poh = (ranked.where(F.col("poh_c").isNotNull()).groupBy("serial_number")
+       .agg(F.min_by("poh_c", "date").alias("poh_first"), F.min("date").alias("poh_first_date"),
+            F.max_by("poh_c", "date").alias("poh_last"), F.max("date").alias("poh_last_date")))
 
 # Most frequent model / capacity per drive (ties -> latest value); counts of distinct values logged
 def mode_of(col):
@@ -82,7 +85,7 @@ model_attrs = (mode_of("model").join(
     ranked.select("serial_number", "model", "model_short", "manufacturer").distinct(), ["serial_number", "model"])
     .dropDuplicates(["serial_number"]))
 
-lt = (agg.join(first_row, "serial_number").join(last_row, "serial_number")
+lt = (agg.join(first_row, "serial_number").join(last_row, "serial_number").join(poh, "serial_number", "left")
       .join(model_attrs, "serial_number").join(mode_of("capacity_bytes"), "serial_number", "left")
       .withColumn("is_data_drive", F.coalesce(F.col("capacity_bytes") >= F.lit(4_000_000_000_000), F.lit(False)))
       .withColumn("failed", F.col("last_failure"))
@@ -95,9 +98,10 @@ lt = (agg.join(first_row, "serial_number").join(last_row, "serial_number")
       .withColumn("censored", 1 - F.col("failed"))
       .withColumn("observed_days", F.datediff("last_date", "first_date") + 1)
       .withColumn("left_truncated", (F.col("first_date") == F.lit(win_start)).cast("int"))
-      .withColumn("entry_age_days", F.col("poh_first") / 24.0)
+      # back-date the first reading to the first observed day
+      .withColumn("entry_age_days", F.col("poh_first") / 24.0 - F.datediff("poh_first_date", "first_date"))
       .withColumn("exit_age_days", F.col("entry_age_days") + F.col("observed_days"))
-      .withColumn("age_ok", (F.col("poh_first").isNotNull() & (F.col("poh_first") >= 0)
+      .withColumn("age_ok", (F.col("poh_first").isNotNull() & (F.col("entry_age_days") >= 0)
                              & (F.col("entry_age_days") <= MAX_PLAUSIBLE_AGE_DAYS)
                              & (F.col("poh_last") >= F.col("poh_first"))).cast("int"))
       .withColumn("window_start", F.lit(win_start)).withColumn("window_end", F.lit(win_end))

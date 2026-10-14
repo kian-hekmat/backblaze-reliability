@@ -17,13 +17,14 @@ from reliability.normalize import normalize_model  # noqa: E402
 path, quarter = sys.argv[1], sys.argv[2]
 con = duckdb.connect()
 last = con.execute(f"""
-    SELECT model, max_by(smart_9_raw::BIGINT, date) poh FROM read_parquet('{path}') GROUP BY serial_number, model""").df()
+    SELECT model, max_by(smart_9_raw::BIGINT, date) poh, max_by(smart_240_raw::BIGINT, date) hfh
+    FROM read_parquet('{path}') GROUP BY serial_number, model""").df()
 last["model_short"] = last["model"].map(lambda m: normalize_model(m)[1])
 last["model_norm"] = last["model"].map(lambda m: normalize_model(m)[0])
 con.register("last", last)
 ages = con.execute(f"""SELECT model_short, count(*) n,
       avg(poh) / 24 / 30.4375 AS raw_age_months,
-      avg({corrected_poh_sql('model_short', 'poh')}) / 24 / 30.4375 AS corrected_age_months
+      avg({corrected_poh_sql('model_short', 'poh', 'hfh')}) / 24 / 30.4375 AS corrected_age_months
     FROM last GROUP BY 1""").df()
 pub = pd.read_csv(ROOT / f"results/validation/backblaze_published_{quarter.lower()}.csv")
 m = pub.merge(ages, on="model_short", how="left")
