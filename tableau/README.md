@@ -184,7 +184,7 @@ At this setting about 3 in 10 failing drives are never flagged; about 1 in 4 fai
 at all, so no telemetry rule can catch them.*
 
 ### Dashboard
-1. New Dashboard, size **Automatic** (or Desktop 1200 × 1600).
+1. New Dashboard. Size pane → Fixed size → **Custom**: Width **1200**, Height **1600** (portrait; viewers scroll). **Automatic** also works.
 2. Title: `Which drives fail, when, and how much warning do we get? (Backblaze fleet, Jul 2023 – Jun 2026)`.
 3. Layout: View 1 on top (full width), View 2 bottom-left, Views 3a and 3b stacked bottom-right. Add each caption as a
    Text object directly under its view.
