@@ -9,16 +9,14 @@ dependencies = [
     "pyarrow",
     "duckdb",
     "scipy",
-    "lifelines",
     "jax",
     "numpyro",
     "scikit-learn",
     "lightgbm",
-    "matplotlib",
 ]
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "lifelines"]  # lifelines: reference implementation in survival tests
 
 [build-system]
 requires = ["hatchling"]

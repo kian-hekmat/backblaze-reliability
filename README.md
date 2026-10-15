@@ -124,6 +124,9 @@ uv run python scripts/spotcheck_queries.py                 # every query checked
 uv run python scripts/dbsql.py -f databricks/sql/40_tableau_extracts.sql -o tableau
 ```
 
+The 12-quarter backfill ran through `scripts/run_full_scope.sh`. For future quarters, `databricks.yml` defines the same
+chain as a Databricks job (validated with `databricks bundle validate`; not yet deployed).
+
 ## Repository
 
 ```

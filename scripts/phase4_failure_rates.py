@@ -5,9 +5,12 @@ Outputs under results/phase4/:
   afr_baseline_window.csv / afr_baseline_quarter.csv    raw AFR (Backblaze formula)
   km_by_model.csv / km_by_manufacturer.csv              Kaplan-Meier by age, delayed entry + right-censoring
   weibull_by_model.csv                                  hazard shape (decreasing / constant / increasing)
-  bayes_estimates.csv, bayes_age_effect.csv, bayes_diagnostics.json
+  overdispersion_train_quarters.csv                     quarterly dispersion index per large model (training years)
+  bayes_estimates.csv, bayes_diagnostics.json           main model: manufacturer pooling + quarter drift, no shared age curve
   bayes_vs_raw_disagreement.csv                         where pooling changes the answer most
-  out_of_time_predictions.csv, out_of_time_summary.json fit on first 8 quarters, predict the last 4
+  out_of_time_predictions_<variant>.csv, out_of_time_summary.json   fit first 8 quarters, predict last 4 (3 variants)
+  age_curve_cross_sectional_<variant>.csv               shared age curve of the two age-aware variants (diagnostic)
+  sensitivity_mg08aca16tey.json                         MG08ACA16TEY Q3 2025 cosmetic-failure sensitivity
 Usage: uv run python scripts/phase4_failure_rates.py [--quick]
 """
 

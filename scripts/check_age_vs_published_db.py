@@ -1,4 +1,4 @@
-"""Age check from Databricks silver: mean corrected SMART 9 age at each drive's last day in a quarter vs Backblaze's
+"""Age check on the PIPELINE's silver table (any quarter; counterpart of check_age_vs_published.py, which reads raw files): mean corrected SMART 9 age at each drive's last day in a quarter vs Backblaze's
 published average age. Writes results/validation/age_check_<quarter>.csv.
 Usage: uv run python scripts/check_age_vs_published_db.py Q1_2026
 """

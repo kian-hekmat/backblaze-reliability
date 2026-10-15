@@ -1,6 +1,7 @@
-"""Compare mean drive age per model (corrected SMART 9 at each drive's last observation in the quarter)
+"""Independent check from the RAW files (no pipeline involved): compare mean drive age per model (corrected SMART 9 at each drive's last observation in the quarter)
 with Backblaze's published average age. Writes results/validation/age_check_<quarter>.csv.
 
+Counterpart: scripts/check_age_vs_published_db.py runs the same check on the pipeline's silver table for any quarter.
 Usage: uv run python scripts/check_age_vs_published.py data/work/Q2_2026_raw.parquet Q2_2026
 """
 import sys

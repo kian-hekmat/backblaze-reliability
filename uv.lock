@@ -484,9 +484,7 @@ source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
     { name = "jax" },
-    { name = "lifelines" },
     { name = "lightgbm" },
-    { name = "matplotlib" },
     { name = "numpy" },
     { name = "numpyro" },
     { name = "pandas" },
@@ -497,6 +495,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "lifelines" },
     { name = "pytest" },
 ]
 
@@ -504,9 +503,7 @@ dev = [
 requires-dist = [
     { name = "duckdb" },
     { name = "jax" },
-    { name = "lifelines" },
     { name = "lightgbm" },
-    { name = "matplotlib" },
     { name = "numpy" },
     { name = "numpyro" },
     { name = "pandas" },
@@ -516,7 +513,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest" }]
+dev = [
+    { name = "lifelines" },
+    { name = "pytest" },
+]
 
 [[package]]
 name = "scikit-learn"
