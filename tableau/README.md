@@ -169,7 +169,11 @@ false alarms **79.6**.
 Data source: `extract_ew_lead_times`.
 1. `lead_bucket` to **Columns**, `Number of Records` (or CNT(`manufacturer`)) to **Rows**. Mark type **Bar**.
 2. Sort buckets manually: `30+ days`, `7-29 days`, `0-6 days`, `not alerted`.
+   (Right-click the `lead_bucket` pill → Sort… → Sort By **Manual** → reorder with the arrows.)
 3. Color by `lead_bucket`; label with the count and percent of total (Quick Table Calculation → Percent of Total).
+4. Titles: left axis → Edit Axis → `Failed drives in test year`. Bucket labels: right-click the "lead_bucket" field label
+   → Edit Label → `Warning before failure (first alert, model at 5 alerts per 1,000 drive-days)` (turn field labels on via
+   Analysis → Table Layout → Show Field Labels for Columns if hidden).
 
 **Check:** 30+ days **713**, 7–29 days **229**, 0–6 days **93**, not alerted **424**; total **1,459** failed test drives.
 
