@@ -104,11 +104,17 @@ Data source: `extract_fleet_reliability`.
 2. Drag `model` to **Rows**. Drag `bayes_afr` to **Columns** (it should show as SUM; since there is one row per model,
    SUM is fine here).
 3. Change the mark type to **Circle**.
-4. **Interval bars:** drag `bayes_afr_lo` onto the `bayes_afr` axis until a double-green-ruler icon appears (this
-   creates Measure Values), then add `bayes_afr_hi`. Alternative: Analysis → Create Calculated Field `interval`:
-   `[bayes_afr_hi] - [bayes_afr_lo]`. Then put `bayes_afr_lo` on Columns, mark type **Gantt Bar**, and drag `interval`
-   to **Size**. Either way, each model shows a line from lo to hi with a dot at the median.
-5. Color by `manufacturer`. Sort `model` descending by `bayes_afr`.
+4. **Interval bars (Gantt + dual axis).** Putting lo/hi on a shared axis with Measure Values only draws three
+   unconnected dots, so use this method:
+   1. Remove `bayes_afr` from Columns (it is re-added in sub-step 4).
+   2. Analysis → Create Calculated Field `interval`: `[bayes_afr_hi] - [bayes_afr_lo]`.
+   3. Drag `bayes_afr_lo` to **Columns**; mark type **Gantt Bar**; drag `interval` to **Size**; shrink the Size slider
+      so bars look like thin lines (each runs from lo to hi).
+   4. Drag `bayes_afr` to **Columns** to the right of `bayes_afr_lo`; on its Marks card set mark type **Circle**.
+   5. Right-click the `SUM(bayes_afr)` pill → **Dual Axis**, then right-click the top axis → **Synchronize Axis**
+      (required, or the dots are on a different scale) → uncheck **Show Header**.
+   6. Remove Measure Names from Color if Tableau added it.
+5. Color by `manufacturer` on the **All** Marks card. Sort `model` descending by `bayes_afr`.
 6. Tooltip: `drive_days`, `failures`, `raw_afr`, `hazard_shape`. Label the dot with `bayes_afr` (2 decimals).
 7. Axis title: `Annualized failure rate (%), posterior median and 90% interval`.
 
