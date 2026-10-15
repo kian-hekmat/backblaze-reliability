@@ -109,8 +109,11 @@ Data source: `extract_fleet_reliability`.
    1. Remove `bayes_afr` from Columns (it is re-added in sub-step 4).
    2. Analysis → Create Calculated Field `interval`: `[bayes_afr_hi] - [bayes_afr_lo]`.
    3. Drag `bayes_afr_lo` to **Columns**; mark type **Gantt Bar**; drag `interval` to **Size**; shrink the Size slider
-      so bars look like thin lines (each runs from lo to hi).
+      so bars look like thin lines (each runs from lo to hi). For a Gantt bar, the field on Size sets the bar's length;
+      the slider sets its thickness.
    4. Drag `bayes_afr` to **Columns** to the right of `bayes_afr_lo`; on its Marks card set mark type **Circle**.
+      Keep `interval` **only on the `SUM(bayes_afr_lo)` card**, not on **All** or the circle card, or the circles are
+      sized by the interval. Enlarge the circles with the Size slider on the `SUM(bayes_afr)` card.
    5. Right-click the `SUM(bayes_afr)` pill → **Dual Axis**, then right-click the top axis → **Synchronize Axis**
       (required, or the dots are on a different scale) → uncheck **Show Header**.
    6. Remove Measure Names from Color if Tableau added it.
