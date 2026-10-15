@@ -65,6 +65,11 @@ Backblaze quarterly ZIPs
   - Baseline: "alert when any critical SMART counter is nonzero".
 
 ## Results
+
+[![Drive Fleet Reliability dashboard: failure rate by drive model, survival by drive age, and early-warning trade-off and lead times](tableau/dashboard.png)](https://public.tableau.com/app/profile/kian.hekmatnejad/viz/DriveFleetReliability/Dashboard1)
+
+*Static image of the [interactive Tableau Public dashboard](https://public.tableau.com/app/profile/kian.hekmatnejad/viz/DriveFleetReliability/Dashboard1); click it to open.*
+
 | Finding | Number | Source |
 |---|---|---|
 | Riskiest high-volume model | Seagate ST12000NM0007: **7.15%/yr** [90% CI 5.75–8.94]; most reliable high-volume models are 0.57–0.69% | [`bayes_estimates.csv`](results/phase4/bayes_estimates.csv) |
