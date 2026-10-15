@@ -175,7 +175,7 @@ at all, so no telemetry rule can catch them.*
    (only include the GitHub link once the repo is public).
 5. **File → Save to Tableau Public As…** → `Drive Fleet Reliability`. Put the URL in `tableau/LINKS.md`.
 
-### Viewer check (required by CLAUDE.md, Phase 7)
+### Viewer check (required by the project plan, Phase 7)
 Show the dashboard to someone who hasn't seen the project. Without explanation, ask:
 1. "Which drive models are riskiest?" They should point to the top of View 1 (Seagate 10–14 TB models).
 2. "Roughly how much warning does the telemetry give?" They should say something like "about two-thirds get a week or

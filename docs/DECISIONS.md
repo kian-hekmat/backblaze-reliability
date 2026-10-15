@@ -1,7 +1,7 @@
 # Design Decisions Log
 
-Dated log of design decisions, alternatives considered, and reasons. Decisions fixed in
-CLAUDE.md Section 3 are not repeated here unless they needed a concrete value.
+Dated log of design decisions, alternatives considered, and reasons. Decisions fixed in the
+project plan (kept outside this repo) are not repeated here unless they needed a concrete value.
 
 ---
 
@@ -11,7 +11,7 @@ CLAUDE.md Section 3 are not repeated here unless they needed a concrete value.
   at project start: Q3 2023, Q4 2023, Q1–Q4 2024, Q1–Q4 2025, Q1 2026, Q2 2026
   (2023-07-01 through 2026-06-30). Q2 2026 is the latest quarter published on the page as of 2026-10-13.
 - **Alternatives:** 8 quarters (less Snowflake load), all history since 2013 (far beyond quota).
-- **Why:** CLAUDE.md fixes "~3 years of complete quarters"; 12 quarters is exactly 3 years.
+- **Why:** the project plan fixes "~3 years of complete quarters"; 12 quarters is exactly 3 years.
 - **Files:** `data_<Qn>_<YYYY>.zip` from `https://f001.backblazeb2.com/file/Backblaze-Hard-Drive-Data/`,
   12 ZIPs totalling ~14.9 GB compressed (Q2 2026 alone is 2.09 GB).
 
@@ -60,7 +60,7 @@ CLAUDE.md Section 3 are not repeated here unless they needed a concrete value.
 ## 2026-10-13 — AFR formula and exclusions (Backblaze methodology)
 
 - **Formula:** AFR = failures / (drive_days / 365) × 100. Backblaze uses 366 in leap years; our
-  baseline uses 365 per CLAUDE.md. External validation uses Q2 2026 and Q1 2026 (non-leap), so the
+  baseline uses 365 per the project plan. External validation uses Q2 2026 and Q1 2026 (non-leap), so the
   two conventions coincide there.
 - **Drive days:** the number of daily rows for the drive in the period (observed days, not calendar span).
 - **Backblaze exclusions in quarterly tables:** boot drives removed; models included only if drive
@@ -104,11 +104,11 @@ Every rule is applied in silver, and every quarter logs the count of rows or dri
 
 ## 2026-10-13 — Cross-quarter data-quality checks deferred to the pipeline
 
-- Full profiling ran on Q2 2026 only (CLAUDE.md Phase 1: "one recent quarter"). The silver job applies
+- Full profiling ran on Q2 2026 only (project plan Phase 1: "one recent quarter"). The silver job applies
   every rule above to each quarter and logs per-quarter counts to `backblaze.ops.quarter_status`, so
   issues appearing only in older quarters surface there and get added here.
 
-## 2026-10-13 — Repository additions not in the CLAUDE.md layout
+## 2026-10-13 — Repository additions not in the planned layout
 
 - `scripts/`: local helper scripts (profiling, dictionary generation) that write to `results/`.
 - `databricks/run_notebook.sh`: syncs notebooks to the workspace and runs one as a serverless one-time job.
@@ -116,13 +116,12 @@ Every rule is applied in silver, and every quarter logs the count of rows or dri
 
 ## 2026-10-13 — Repository visibility
 
-- The GitHub repo `kian-hekmat/backblaze-reliability` is **private** (Kian). `CLAUDE.md` and
-  `docs/TALK_NOTES.md` contain interview-specific context. Before the repo is made public, remove them
-  from the working tree **and from git history**; they have been committed since the first commit.
+- The GitHub repo `kian-hekmat/backblaze-reliability` is **private** (Kian) while the project is in progress.
+  Private planning notes are kept out of the repository (see 2026-10-14).
 
-## 2026-10-13 — Plan changes approved by Kian (deviations from CLAUDE.md)
+## 2026-10-13 — Plan changes approved by Kian (deviations from the original plan)
 
-Kian approved these on 2026-10-13. They take precedence over the corresponding CLAUDE.md text.
+Kian approved these on 2026-10-13. They take precedence over the corresponding plan text.
 
 1. **Age with left truncation.** `drive_lifetimes` adds age from SMART 9 (power-on hours) at first and
    last observation. Kaplan-Meier and Weibull fits by age use delayed entry, because most drives are
@@ -188,7 +187,7 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   - Removed `snowflake/` (setup, role check, tables, load, validate scripts), `scripts/validate_snowflake.py`
     and `results/phase0_role_check.txt` (they remain in git history).
   - Phase 6 is now a Databricks SQL serving layer.
-  - CLAUDE.md, README and LIMITATIONS are rewritten to match.
+  - The project plan, README and LIMITATIONS are rewritten to match.
 - **Snowflake account objects** created on 2026-10-13 (database `BACKBLAZE`, warehouses `LOAD_WH`/`BI_WH`,
   roles, resource monitor) hold no data and are left to expire with the trial unless Kian asks to drop them.
 - **Parquet export (`40_export_gold.py`) is kept**, now to feed local modeling (NumPyro, LightGBM) and the
@@ -296,3 +295,9 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding C
   forecast; LIMITATIONS records this.
 - **Diagnostics:** main fit 0 divergences, R-hat 1.012, min ESS 511 (3,000 warmup, target_accept 0.99). The option-A
   out-of-time training fit had 1 divergence in 4,000 draws.
+
+## 2026-10-14 — Private planning files removed from the repository
+
+- The project plan and personal presentation notes are private planning material. They were removed from the tracked
+  tree on 2026-10-14 (Kian), are listed in `.gitignore`, and are kept locally only. **They are still in the git
+  history** of earlier commits; that history must be rewritten before the repository is made public.

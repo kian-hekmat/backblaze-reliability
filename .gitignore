@@ -18,3 +18,7 @@ connections.toml
 
 # OS
 .DS_Store
+
+# Private planning files (kept locally, not in the repo)
+CLAUDE.md
+docs/TALK_NOTES.md

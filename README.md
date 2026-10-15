@@ -161,5 +161,5 @@ scripts/           download, backfill driver, SQL runner, validation, modeling e
 tests/             pytest unit tests
 results/           every reported number's source file
 tableau/           aggregate extracts + dashboard build spec
-docs/              DECISIONS · DATA_DICTIONARY · RESULTS · LIMITATIONS · TALK_NOTES
+docs/              DECISIONS · DATA_DICTIONARY · RESULTS · LIMITATIONS
 ```

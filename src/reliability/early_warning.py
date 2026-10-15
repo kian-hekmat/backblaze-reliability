@@ -1,6 +1,6 @@
 """Early-warning splits, baseline rule, and evaluation metrics.
 
-Splits (CLAUDE.md Phase 5): each drive is assigned to train or test by a hash of its serial number, so a drive
+Splits (project plan, Phase 5): each drive is assigned to train or test by a hash of its serial number, so a drive
 never appears in both; in addition, training uses only dates before `cutoff`, and testing only dates on or
 after it. Rows with unknown labels are dropped before either.
 

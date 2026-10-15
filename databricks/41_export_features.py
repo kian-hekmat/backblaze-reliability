@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # 41 — Export early-warning train / test sets
-# MAGIC Split rules: `src/reliability/early_warning.py` (CLAUDE.md Phase 5).
+# MAGIC Split rules: `src/reliability/early_warning.py` (project plan, Phase 5).
 # MAGIC - drive assignment: SHA-256("bb-ew-v1:" + serial) first 8 hex digits / 0xFFFFFFFF < test_frac -> test drive
 # MAGIC   (identical to `is_test_drive`; re-verified locally on every exported serial)
 # MAGIC - **train**: train drives, dates < cutoff, labels known; all `fail_30d = 1` rows + a fixed-seed sample of
