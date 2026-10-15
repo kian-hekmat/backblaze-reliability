@@ -309,5 +309,6 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding p
   plus the Phase 2 slice test. Links and extract mapping: `tableau/LINKS.md`.
 - The repository is now public (Kian). The step-by-step Tableau build spec (`tableau/README.md`) was removed from the
   tracked tree at Kian's request, kept locally, and added to `.gitignore`.
-- Not yet confirmed: that every displayed number matches the spec's check values. The dashboard can't be read
-  programmatically (Tableau Public renders client-side), so this rests on Kian's check while building.
+- Kian confirmed (2026-10-15) that the displayed numbers match the spec's check values. The dashboard can't be read
+  programmatically (Tableau Public renders client-side), so this check rests on Kian.
+- The planned independent viewer check was **waived by Kian** (2026-10-15) and not performed.

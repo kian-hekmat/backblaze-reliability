@@ -14,7 +14,8 @@
 | `extract_ew_lead_times.csv` | 1,459 | Days of warning before failure |
 | `extract_model_quarter_afr.csv` | 602 | Slice test (raw AFR per model per quarter) |
 
-## Viewer check
+## Checks
 
-*Not yet recorded.* A viewer who hasn't seen the project should be able to say, without explanation, which drive models
-are riskiest and roughly how much warning telemetry gives.
+- **Displayed numbers:** confirmed by Kian (2026-10-15) to match the check values computed from `results/`. Examples:
+  top model ST12000NM0007 7.15 [5.75, 8.94]; warning-lead buckets 713 / 229 / 93 / 424 of 1,459 failed test drives.
+- **Independent viewer check:** waived by Kian (2026-10-15); not performed.
