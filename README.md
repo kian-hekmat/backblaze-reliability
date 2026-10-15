@@ -65,24 +65,6 @@ Backblaze quarterly ZIPs
   - Baseline: "alert when any critical SMART counter is nonzero".
 
 ## Results
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="results/figures/fleet_reliability_dark.png">
-  <img alt="Bayesian annualized failure rate with 90% credible interval for the 26 drive models with at least 1M drive-days; Seagate ST12000NM0007 highest at 7.15%, HGST HMS5C4040BLE640 lowest at 0.27%" src="results/figures/fleet_reliability_light.png">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="results/figures/survival_by_manufacturer_dark.png">
-  <img alt="Kaplan-Meier survival by drive age per manufacturer; HGST declines fastest, WDC holds at about 0.96" src="results/figures/survival_by_manufacturer_light.png">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="results/figures/early_warning_dark.png">
-  <img alt="Left: share of failure-days alerted vs false alarms per 1,000 drive-days for LightGBM and the simple rule. Right: warning lead time for 1,459 failed test drives at 5 alerts per 1,000 drive-days: 713 with 30+ days, 229 with 7-29, 93 with 0-6, 424 not alerted" src="results/figures/early_warning_light.png">
-</picture>
-
-Interactive version: [Tableau Public dashboard](https://public.tableau.com/app/profile/kian.hekmatnejad/viz/DriveFleetReliability/Dashboard1). Figures are generated from `results/` by [`scripts/make_figures.py`](scripts/make_figures.py).
-
 | Finding | Number | Source |
 |---|---|---|
 | Riskiest high-volume model | Seagate ST12000NM0007: **7.15%/yr** [90% CI 5.75–8.94]; most reliable high-volume models are 0.57–0.69% | [`bayes_estimates.csv`](results/phase4/bayes_estimates.csv) |
@@ -135,7 +117,6 @@ uv run python scripts/validate_serving.py                  # serving-layer recon
 uv run python scripts/dbsql.py -f databricks/sql/30_analysis_queries.sql
 uv run python scripts/spotcheck_queries.py                 # every query checked against pandas
 uv run python scripts/dbsql.py -f databricks/sql/40_tableau_extracts.sql -o tableau
-uv run python scripts/make_figures.py                     # README figures (results/figures/)
 ```
 
 ## Repository
