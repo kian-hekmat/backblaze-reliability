@@ -299,5 +299,5 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding p
 ## 2026-10-14 — Private planning files removed from the repository
 
 - The project plan and personal presentation notes are private planning material. They were removed from the tracked
-  tree on 2026-10-14 (Kian), are listed in `.gitignore`, and are kept locally only. **They are still in the git
-  history** of earlier commits; that history must be rewritten before the repository is made public.
+  tree on 2026-10-14 (Kian), are listed in `.gitignore`, and are kept locally only. They remain in the git history of
+  earlier commits; Kian decided that is acceptable, so history is not rewritten.
