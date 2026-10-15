@@ -150,13 +150,12 @@ roughly flat.*
 
 ### View 3a: Early warning trade-off (sheet name: `Alerts vs failures caught`)
 Data source: `extract_ew_tradeoff`. One row per (alert model, alert budget); LightGBM has 12 rows, the simple rule 1.
-1. `false_alarms_per_1000` to **Columns**, `recall` to **Rows**.
-2. Filter `alert_model` to **lightgbm** and **simple_rule** (exclude logistic, to keep it simple).
-3. Mark type (Marks-card dropdown; applies to the whole sheet) → **Line**. A Line joins the points that share a color.
-4. Drag `alert_model` onto **Color**.
-5. Drag `budget_per_1000` onto **Path** (convert it to a Dimension first if needed: right-click it in the Data pane →
-   Convert to Dimension). Without this, Tableau sums each model's rows into a single point. With it, LightGBM becomes a
-   curve connected in budget order.
+1. **Analysis menu → uncheck "Aggregate Measures"** first. Each CSV row must be its own point; otherwise Tableau sums
+   LightGBM's 12 rows into one point (you would see an impossible recall of 5.13 at 138.6 false alarms).
+2. `false_alarms_per_1000` to **Columns**, `recall` to **Rows** (pills show without SUM).
+3. Filter `alert_model` to **lightgbm** and **simple_rule** (exclude logistic, to keep it simple).
+4. Mark type (Marks-card dropdown; applies to the whole sheet) → **Line**. A Line joins the points that share a color.
+5. Drag `alert_model` onto **Color**, and `budget_per_1000` onto **Path**, so LightGBM's points connect in budget order.
 6. Click **Color** → **Markers** → choose markers on all points. A one-point line is invisible without markers, so this
    is what makes the simple rule show up as a dot. (Line marks have no Shape shelf.)
 7. Bottom axis → Edit Axis → **Logarithmic**, title `False alarms per 1,000 drive-days`. Left axis → Edit Axis → title
