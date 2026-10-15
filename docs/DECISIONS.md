@@ -301,3 +301,13 @@ Kian approved these on 2026-10-13. They take precedence over the corresponding p
 - The project plan and personal presentation notes are private planning material. They were removed from the tracked
   tree on 2026-10-14 (Kian), are listed in `.gitignore`, and are kept locally only. They remain in the git history of
   earlier commits; Kian decided that is acceptable, so history is not rewritten.
+
+## 2026-10-15 — Dashboard published; build spec kept out of the public repo
+
+- Dashboard published on Tableau Public by Kian
+  ([Drive Fleet Reliability](https://public.tableau.com/app/profile/kian.hekmatnejad/viz/DriveFleetReliability/Dashboard1)),
+  plus the Phase 2 slice test. Links and extract mapping: `tableau/LINKS.md`.
+- The repository is now public (Kian). The step-by-step Tableau build spec (`tableau/README.md`) was removed from the
+  tracked tree at Kian's request, kept locally, and added to `.gitignore`.
+- The dashboard's displayed numbers were checked by Kian against the spec's check values while building. They were not
+  verified programmatically: Tableau Public pages render client-side.

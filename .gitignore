@@ -22,3 +22,4 @@ connections.toml
 # Private planning files (kept locally, not in the repo)
 CLAUDE.md
 docs/TALK_NOTES.md
+tableau/README.md
