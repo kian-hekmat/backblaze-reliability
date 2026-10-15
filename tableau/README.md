@@ -171,9 +171,10 @@ Data source: `extract_ew_lead_times`.
 2. Sort buckets manually: `30+ days`, `7-29 days`, `0-6 days`, `not alerted`.
    (Right-click the `lead_bucket` pill → Sort… → Sort By **Manual** → reorder with the arrows.)
 3. Color by `lead_bucket`; label with the count and percent of total (Quick Table Calculation → Percent of Total).
-4. Titles: left axis → Edit Axis → `Failed drives in test year`. Bucket labels: right-click the "lead_bucket" field label
-   → Edit Label → `Warning before failure (first alert, model at 5 alerts per 1,000 drive-days)` (turn field labels on via
-   Analysis → Table Layout → Show Field Labels for Columns if hidden).
+4. Titles: left axis → Edit Axis → `Failed drives in test year`. Bucket title: a field label shows the field's name, so
+   rename the field: Data pane → right-click `lead_bucket` → **Rename** →
+   `Warning before failure (first alert, model at 5 alerts per 1,000 drive-days)` (field labels on via
+   Analysis → Table Layout → Show Field Labels for Columns).
 
 **Check:** 30+ days **713**, 7–29 days **229**, 0–6 days **93**, not alerted **424**; total **1,459** failed test drives.
 
