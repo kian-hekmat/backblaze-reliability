@@ -149,14 +149,19 @@ models with at least 30 failures, 11 show rising risk with age (wear-out), 4 sho
 roughly flat.*
 
 ### View 3a: Early warning trade-off (sheet name: `Alerts vs failures caught`)
-Data source: `extract_ew_tradeoff`.
-1. Filter `alert_model` to **lightgbm** and **simple_rule** (exclude logistic, to keep it simple).
-2. `false_alarms_per_1000` to **Columns**, `recall` to **Rows** (both as AVG or SUM; one row per point).
-3. Mark type **Line** for lightgbm; the simple rule is one point. Put `alert_model` on Color and on Shape.
-   (Tableau draws the single rule point as a dot automatically.)
-4. X-axis: logarithmic scale (edit axis → Logarithmic), title `False alarms per 1,000 drive-days`.
-   Y-axis title `Share of failure-days alerted (within 30 days of failure)`, format as percent.
-5. Label the points at budgets 1, 5 and 10 (right-click a mark → Mark Label → Always show).
+Data source: `extract_ew_tradeoff`. One row per (alert model, alert budget); LightGBM has 12 rows, the simple rule 1.
+1. `false_alarms_per_1000` to **Columns**, `recall` to **Rows**.
+2. Filter `alert_model` to **lightgbm** and **simple_rule** (exclude logistic, to keep it simple).
+3. Mark type (Marks-card dropdown; applies to the whole sheet) → **Line**. A Line joins the points that share a color.
+4. Drag `alert_model` onto **Color**.
+5. Drag `budget_per_1000` onto **Path** (convert it to a Dimension first if needed: right-click it in the Data pane →
+   Convert to Dimension). Without this, Tableau sums each model's rows into a single point. With it, LightGBM becomes a
+   curve connected in budget order.
+6. Click **Color** → **Markers** → choose markers on all points. A one-point line is invisible without markers, so this
+   is what makes the simple rule show up as a dot. (Line marks have no Shape shelf.)
+7. Bottom axis → Edit Axis → **Logarithmic**, title `False alarms per 1,000 drive-days`. Left axis → Edit Axis → title
+   `Share of failure-days alerted (within 30 days of failure)`; Format → Numbers → Percentage, 0 decimals.
+8. Optional: right-click the dots at LightGBM budgets 1, 5, 10 and the rule's dot → Mark Label → Always Show.
 
 **Check:** LightGBM at budget 5: recall **0.449**, false alarms **4.51**. Simple rule: recall **0.681**,
 false alarms **79.6**.
